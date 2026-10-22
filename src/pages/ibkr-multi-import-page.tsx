@@ -5,7 +5,7 @@ import { debug } from "../lib/debug-logger";
 import { getErrorMessage } from "../lib/shared-utils";
 import { detectCurrenciesFromIBKR } from "../lib/currency-detector";
 import { generateAccountNames } from "../lib/account-name-generator";
-import { fetchFlexQuery, setHttpClient, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
+import { fetchFlexQuery, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
 import {
   refreshAndUpdateAccountPreviews,
@@ -90,13 +90,6 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
   // AbortController for cancelling in-progress operations on reset
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Initialize HTTP client
-  useEffect(() => {
-    if (ctx?.api?.http) {
-      setHttpClient(ctx.api.http);
-    }
-  }, [ctx]);
 
   // Load accounts and saved credentials
   useEffect(() => {

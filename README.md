@@ -14,9 +14,12 @@ A comprehensive import solution for Interactive Brokers (IBKR) activity statemen
 
 ## Installation
 
+Requires Wealthfolio 3.9 or newer. Version 1.0.0 targets the pre-sandbox addon
+runtime and does not load on Wealthfolio 3.6+.
+
 ### From GitHub Releases
 
-1. Go to the [Releases](https://github.com/CoolONEOfficial/wealthfolio-ibkr-addon/releases) page
+1. Go to the [Releases](https://github.com/AleksandrZhukov/wealthfolio-ibkr-addon/releases) page
 2. Download the latest `.zip` file
 3. Open Wealthfolio → Settings → Addons
 4. Click "Install from File" and select the downloaded ZIP
@@ -194,12 +197,11 @@ This addon requires the following permissions:
 | Permission | Purpose |
 |------------|---------|
 | accounts.getAll, accounts.create | Create and manage multi-currency accounts |
-| activities.import, activities.checkImport | Import transactions from CSV/API |
-| assets.searchTicker | Resolve ISIN symbols to Yahoo Finance tickers |
-| ui.sidebar.addItem, ui.router.add | Display import wizard and settings pages |
+| activities.getAll, activities.import, activities.checkImport | Import transactions and skip already imported ones |
+| market-data.searchTicker | Resolve ISIN symbols to market tickers |
 | secrets.get, secrets.set, secrets.delete | Securely store Flex Query credentials |
-| events.portfolio.onUpdateComplete | Trigger automatic Flex Query fetch |
-| logger.* | Log operations for debugging |
+| events.onUpdateComplete | Trigger automatic Flex Query fetch |
+| network.request | Download Flex statements from `ndcdyn.interactivebrokers.com` only |
 
 ## Development
 

@@ -15,8 +15,8 @@ import { debug } from "./debug-logger";
  * Normalize a numeric value for fingerprinting
  * Handles floating point precision issues by rounding to 6 decimal places
  */
-function normalizeNumber(value: number | undefined | null): string {
-  if (value === undefined || value === null || isNaN(value)) {
+function normalizeNumber(value: number | string | undefined | null): string {
+  if (value === undefined || value === null || value === "" || isNaN(Number(value))) {
     return "0.000000";
   }
   // Round to 6 decimal places to handle floating point precision issues
@@ -81,10 +81,10 @@ interface NormalizedActivityFields {
   date: string | Date | undefined;
   symbol: string;
   activityType: string;
-  quantity?: number;
-  unitPrice?: number;
-  amount?: number;
-  fee?: number;
+  quantity?: number | string | null;
+  unitPrice?: number | string | null;
+  amount?: number | string | null;
+  fee?: number | string | null;
   currency?: string;
   comment?: string;
 }
@@ -154,7 +154,7 @@ function createFingerprintFromNormalized(fields: NormalizedActivityFields): stri
 export function createActivityFingerprint(activity: ActivityImport): string {
   return createFingerprintFromNormalized({
     date: activity.date,
-    symbol: activity.symbol,
+    symbol: activity.symbol ?? "",
     activityType: activity.activityType,
     quantity: activity.quantity,
     unitPrice: activity.unitPrice,
@@ -173,10 +173,10 @@ export function createExistingActivityFingerprint(activity: {
   activityDate: string;
   assetId: string;
   activityType: string;
-  quantity: number;
-  unitPrice: number;
-  amount?: number;
-  fee: number;
+  quantity: number | string | null;
+  unitPrice: number | string | null;
+  amount?: number | string | null;
+  fee: number | string | null;
   currency: string;
   comment?: string;
 }): string {
@@ -206,10 +206,10 @@ export function filterDuplicateActivities(
     activityDate: string | Date;
     assetId: string;
     activityType: string;
-    quantity: number;
-    unitPrice: number;
-    amount?: number;
-    fee: number;
+    quantity: number | string | null;
+    unitPrice: number | string | null;
+    amount?: number | string | null;
+    fee: number | string | null;
     currency: string;
     comment?: string;
   }>
@@ -326,10 +326,10 @@ export async function deduplicateActivities(
     activityDate: string;
     assetId: string;
     activityType: string;
-    quantity: number;
-    unitPrice: number;
-    amount?: number;
-    fee: number;
+    quantity: number | string | null;
+    unitPrice: number | string | null;
+    amount?: number | string | null;
+    fee: number | string | null;
     currency: string;
     comment?: string;
   }>>

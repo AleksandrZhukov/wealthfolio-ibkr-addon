@@ -87,10 +87,10 @@ export interface ActivityFingerprint {
   activityDate: string;
   assetId: string;
   activityType: string;
-  quantity: number;
-  unitPrice: number;
-  amount?: number;
-  fee: number;
+  quantity: number | string | null;
+  unitPrice: number | string | null;
+  amount?: number | string | null;
+  fee: number | string | null;
   currency: string;
   comment?: string;
 }

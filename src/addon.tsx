@@ -1,10 +1,9 @@
-import React from 'react';
 import type { AddonContext, Account } from '@wealthfolio/addon-sdk';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import IBKRMultiImportPage from './pages/ibkr-multi-import-page';
 import IBKRFlexSettingsPage from './pages/ibkr-flex-settings-page';
-import { setHttpClient } from './lib/flex-query-fetcher';
+import { setHttpClient, createNetworkHttpClient } from './lib/flex-query-fetcher';
 import {
   loadConfigsSafe,
   loadToken,
@@ -19,6 +18,10 @@ import {
 } from './lib/auto-fetch-helpers';
 import { processFlexQueryConfig } from './lib/auto-fetch-processor';
 import { getErrorMessage } from './lib/shared-utils';
+
+const ADDON_ID = 'ibkr-multi-import';
+const ROUTE_IMPORT = 'import';
+const ROUTE_SETTINGS = 'settings';
 
 // Lock for preventing concurrent auto-fetch operations
 const autoFetchLock = new AsyncLock();
@@ -79,65 +82,30 @@ const queryClient = new QueryClient({
  * - Flex Query API integration for automatic fetching and importing
  */
 export function enable(ctx: AddonContext) {
-  // Initialize HTTP client for Flex Query API requests
-  if (ctx.api.http) {
-    setHttpClient(ctx.api.http);
-  }
+  setHttpClient(createNetworkHttpClient(ctx.api.network));
 
   // Cleanup functions to call on disable
   const cleanupFunctions: (() => void)[] = [];
   // Track if addon has been disabled to prevent adding cleanup functions after disable
   let isDisabled = false;
 
-  // Create lazy-loaded components that match SDK's expected type
-  // React.lazy() returns LazyExoticComponent which is what the router expects
-  const LazyImportPage = React.lazy(() =>
-    Promise.resolve({
-      default: () => <IBKRMultiImportPage ctx={ctx} />,
-    })
-  );
-
-  const LazySettingsPage = React.lazy(() =>
-    Promise.resolve({
-      default: () => (
-        <QueryClientProvider client={queryClient}>
-          <IBKRFlexSettingsPage ctx={ctx} />
-        </QueryClientProvider>
-      ),
-    })
-  );
-
-  // Register the import page route
+  // Route ids must match `contributes.routes` in manifest.json; the host mounts
+  // them under /addons/ibkr-multi-import and draws the sidebar links itself.
   ctx.router.add({
-    path: 'activities/import/ibkr-multi',
-    component: LazyImportPage,
+    id: ROUTE_IMPORT,
+    path: `/addons/${ADDON_ID}`,
+    component: () => <IBKRMultiImportPage ctx={ctx} />,
   });
 
-  // Register the settings page route
   ctx.router.add({
-    path: 'settings/ibkr-flex',
-    component: LazySettingsPage,
+    id: ROUTE_SETTINGS,
+    path: `/addons/${ADDON_ID}/settings`,
+    component: () => (
+      <QueryClientProvider client={queryClient}>
+        <IBKRFlexSettingsPage ctx={ctx} />
+      </QueryClientProvider>
+    ),
   });
-
-  // Add sidebar item for import
-  const importSidebarHandle = ctx.sidebar.addItem({
-    id: 'ibkr-multi-import',
-    label: 'IBKR Import',
-    icon: 'Import',
-    route: '/activities/import/ibkr-multi',
-    order: 150,
-  });
-  cleanupFunctions.push(() => importSidebarHandle.remove());
-
-  // Add sidebar item for settings
-  const settingsSidebarHandle = ctx.sidebar.addItem({
-    id: 'ibkr-flex-settings',
-    label: 'IBKR Settings',
-    icon: 'Settings',
-    route: '/settings/ibkr-flex',
-    order: 151,
-  });
-  cleanupFunctions.push(() => settingsSidebarHandle.remove());
 
   /**
    * Get or create accounts for each currency in an account group

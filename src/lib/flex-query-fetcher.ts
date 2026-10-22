@@ -11,6 +11,7 @@
  * - GetStatement endpoint: /GetStatement?t={TOKEN}&q={REFERENCE_CODE}&v=3
  */
 
+import type { NetworkAPI, NetworkRequest } from "@wealthfolio/addon-sdk";
 import { FLEX_QUERY_INITIAL_DELAY_MS, FLEX_QUERY_MAX_DELAY_MS, FLEX_QUERY_ABSOLUTE_TIMEOUT_MS, MIN_TOKEN_LENGTH, MAX_TOKEN_LENGTH, MAX_QUERY_ID_LENGTH } from "./constants";
 
 export interface FlexQueryConfig {
@@ -127,12 +128,43 @@ export const FLEX_ERROR_CODES: Record<number, string> = {
 const FLEX_API_BASE = "https://ndcdyn.interactivebrokers.com/AccountManagement/FlexWebService";
 const USER_AGENT = "Wealthfolio/1.0";
 
+// SendRequest can take a while to answer; the host broker caps this at 120s.
+const NETWORK_TIMEOUT_SECS = 60;
+
+/**
+ * Adapt the host network broker (ctx.api.network) to HttpClient. The sandbox
+ * blocks direct fetch, and the broker only reaches hosts listed in
+ * manifest.json `network.allowedHosts`.
+ */
+export function createNetworkHttpClient(network: NetworkAPI): HttpClient {
+  return {
+    async fetch(url, options) {
+      const response = await network.request({
+        url,
+        method: (options?.method ?? "GET") as NetworkRequest["method"],
+        headers: options?.headers,
+        body: options?.body,
+        timeoutSecs: options?.timeout_ms
+          ? Math.ceil(options.timeout_ms / 1000)
+          : NETWORK_TIMEOUT_SECS,
+      });
+      return {
+        status: response.status,
+        status_text: String(response.status),
+        headers: response.headers,
+        body: response.body,
+        ok: response.status >= 200 && response.status < 300,
+      };
+    },
+  };
+}
+
 // Module-level HTTP client - set via setHttpClient()
 let httpClient: HttpClient | null = null;
 
 /**
  * Set the HTTP client to use for API requests
- * This should be called with ctx.api.http from the addon context
+ * Called once from enable() with createNetworkHttpClient(ctx.api.network)
  */
 export function setHttpClient(client: HttpClient): void {
   httpClient = client;
@@ -144,7 +176,7 @@ export function setHttpClient(client: HttpClient): void {
 function getHttpClient(): HttpClient {
   if (!httpClient) {
     throw new Error(
-      "HTTP client not set. Call setHttpClient(ctx.api.http) before using Flex Query functions."
+      "HTTP client not set. Call setHttpClient(createNetworkHttpClient(ctx.api.network)) before using Flex Query functions."
     );
   }
   return httpClient;
