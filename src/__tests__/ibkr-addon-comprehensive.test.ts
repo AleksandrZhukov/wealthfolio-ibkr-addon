@@ -303,7 +303,7 @@ describe('Currency Detection', () => {
         { LevelOfDetail: 'DETAIL', CurrencyPrimary: 'EUR' },
       ];
       const currencies = detectCurrenciesFromIBKR(rows as any);
-      expect(currencies).toEqual([]);
+      expect(currencies).toEqual(['EUR', 'USD']);
     });
 
     it('should handle empty currency values', () => {

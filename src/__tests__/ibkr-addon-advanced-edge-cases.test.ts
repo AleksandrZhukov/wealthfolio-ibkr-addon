@@ -1398,8 +1398,8 @@ describe('Currency Detector Edge Cases', () => {
     ];
 
     const result = detectCurrenciesFromIBKR(data);
-    // Should not detect currencies from non-Currency level rows
-    expect(result).toHaveLength(0);
+    // Flex statements have no Currency rows: fall back to detail rows, never summary rows
+    expect(result).toEqual(['USD']);
   });
 
   it('should handle missing CurrencyPrimary field', () => {

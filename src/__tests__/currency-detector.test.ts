@@ -60,7 +60,7 @@ describe("Currency Detector", () => {
       expect(currencies).toEqual([]);
     });
 
-    it("should return empty array when no Currency rows exist", () => {
+    it("should use detail rows, not summary rows, when no Currency rows exist", () => {
       const rows: CsvRowData[] = [
         { LevelOfDetail: "Detail", CurrencyPrimary: "USD", lineNumber: "1" },
         { LevelOfDetail: "Summary", CurrencyPrimary: "EUR", lineNumber: "2" },
@@ -68,7 +68,7 @@ describe("Currency Detector", () => {
 
       const currencies = detectCurrenciesFromIBKR(rows);
 
-      expect(currencies).toEqual([]);
+      expect(currencies).toEqual(["USD"]);
     });
 
     it("should trim whitespace from currency codes", () => {
@@ -174,5 +174,25 @@ describe("Currency Detector", () => {
       // Should treat USD and usd as different (case-sensitive)
       expect(currencies).toEqual(["USD", "usd"]);
     });
+  });
+});
+
+describe("detectCurrenciesFromIBKR with Flex Query rows", () => {
+  it("falls back to execution and detail rows when there is no currency summary", () => {
+    const rows = [
+      { LevelOfDetail: "EXECUTION", CurrencyPrimary: "USD", lineNumber: "1" },
+      { LevelOfDetail: "DETAIL", CurrencyPrimary: "CAD", lineNumber: "2" },
+      { LevelOfDetail: "DETAIL", CurrencyPrimary: "USD", lineNumber: "3" },
+      { LevelOfDetail: "SUMMARY", CurrencyPrimary: "EUR", lineNumber: "4" },
+    ];
+    expect(detectCurrenciesFromIBKR(rows)).toEqual(["CAD", "USD"]);
+  });
+
+  it("prefers summary rows when present", () => {
+    const rows = [
+      { LevelOfDetail: "Currency", CurrencyPrimary: "GBP", lineNumber: "1" },
+      { LevelOfDetail: "EXECUTION", CurrencyPrimary: "USD", lineNumber: "2" },
+    ];
+    expect(detectCurrenciesFromIBKR(rows)).toEqual(["GBP"]);
   });
 });

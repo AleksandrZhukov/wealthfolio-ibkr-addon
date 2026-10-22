@@ -26,6 +26,19 @@ export function detectCurrenciesFromIBKR(parsedData: CsvRowData[]): string[] {
     }
   }
 
+  // Flex Query statements have no currency summary rows; there CurrencyPrimary
+  // on each execution/detail row is that transaction's own currency.
+  if (currenciesSet.size === 0) {
+    for (const row of parsedData) {
+      const level = row.LevelOfDetail?.trim().toUpperCase();
+      if (level !== "EXECUTION" && level !== "DETAIL") continue;
+      const currency = row.CurrencyPrimary?.trim();
+      if (currency && /^[A-Z]{3}$/.test(currency)) {
+        currenciesSet.add(currency);
+      }
+    }
+  }
+
   // Convert to array and sort alphabetically
   return Array.from(currenciesSet).sort();
 }
