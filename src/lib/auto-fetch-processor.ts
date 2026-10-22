@@ -11,6 +11,7 @@ import type { CsvRowData } from "../presets/types";
 import { fetchFlexQuery } from "./flex-query-fetcher";
 import { parseFlexQueryCSV } from "./flex-csv-parser";
 import { detectCurrenciesFromIBKR } from "./currency-detector";
+import { accountNamePrefix, partitionByIbkrAccount } from "./ibkr-accounts";
 import { processAndResolveData } from "./import-orchestrator";
 import { deduplicateActivities } from "./activity-deduplicator";
 import {
@@ -64,7 +65,8 @@ export interface ProcessConfigDeps {
   token: string;
   getOrCreateAccountsForGroup: (
     accountGroup: string,
-    currencies: string[]
+    currencies: string[],
+    ibkr?: { ibkrAccount: string; label: string }
   ) => Promise<Map<string, Account>>;
 }
 
@@ -209,43 +211,53 @@ export async function processFlexQueryConfig(
       return { success: true, imported: 0, skipped: 0, failed: 0, failedAccounts: [] };
     }
 
-    // 2. Detect currencies and get/create accounts
-    const currencies = detectCurrenciesFromIBKR(rows);
-    const accountsByCurrency = await getOrCreateAccountsForGroup(config.accountGroup, currencies);
+    // 2-4. Each IBKR account imports into its own currency accounts
+    const importResult = { imported: 0, skipped: 0, failed: 0, failedAccounts: [] as string[] };
+    for (const partition of partitionByIbkrAccount(rows)) {
+      const ibkrLabel = partition.ibkrAccount ? partition.label : undefined;
+      const currencies = detectCurrenciesFromIBKR(partition.rows);
+      const accountsByCurrency = await getOrCreateAccountsForGroup(
+        config.accountGroup,
+        currencies,
+        partition.ibkrAccount ? { ibkrAccount: partition.ibkrAccount, label: partition.label } : undefined
+      );
 
-    // Build account previews for processAndResolveData
-    const accountPreviews = currencies.map((currency) => ({
-      currency,
-      name: `${config.accountGroup} - ${currency}`,
-      group: config.accountGroup,
-      isNew: false,
-      existingAccount: accountsByCurrency.get(currency),
-    }));
+      // Build account previews for processAndResolveData
+      const accountPreviews = currencies.map((currency) => ({
+        currency,
+        name: `${accountNamePrefix(config.accountGroup, ibkrLabel)} - ${currency}`,
+        group: config.accountGroup,
+        isNew: false,
+        existingAccount: accountsByCurrency.get(currency),
+      }));
 
-    // 3. Process data using shared logic (preprocess, resolve tickers, convert, split FX)
-    const processResult = await processAndResolveData(
-      rows,
-      accountPreviews,
-      ctx.api.market?.searchTicker
-    );
+      // Process data using shared logic (preprocess, resolve tickers, convert, split FX)
+      const processResult = await processAndResolveData(
+        partition.rows,
+        accountPreviews,
+        ctx.api.market?.searchTicker
+      );
 
-    // Log conversion errors if any
-    if (processResult.conversionErrors.length > 0) {
-      const errorSummary = processResult.conversionErrors.slice(0, 5).map((e) => e.message).join("; ");
-      ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: ${processResult.conversionErrors.length} conversion error(s): ${errorSummary}`);
+      // Log conversion errors if any
+      if (processResult.conversionErrors.length > 0) {
+        const errorSummary = processResult.conversionErrors.slice(0, 5).map((e) => e.message).join("; ");
+        ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: ${processResult.conversionErrors.length} conversion error(s): ${errorSummary}`);
+      }
+
+      // Import activities with deduplication
+      const partitionResult = await importActivitiesToAccounts(
+        processResult.activities,
+        currencies,
+        accountsByCurrency,
+        ctx.api.activities,
+        config.name,
+        ctx.api.logger
+      );
+      importResult.imported += partitionResult.imported;
+      importResult.skipped += partitionResult.skipped;
+      importResult.failed += partitionResult.failed;
+      importResult.failedAccounts.push(...partitionResult.failedAccounts);
     }
-
-    const activities = processResult.activities;
-
-    // 4. Import activities with deduplication
-    const importResult = await importActivitiesToAccounts(
-      activities,
-      currencies,
-      accountsByCurrency,
-      ctx.api.activities,
-      config.name,
-      ctx.api.logger
-    );
 
     // 5. Update config status
     try {

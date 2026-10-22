@@ -14,6 +14,7 @@ import { resolveTickersFromIBKR } from "./ticker-resolution-service";
 import { convertToActivityImports } from "./activity-converter";
 import { splitFXConversions, SkippedFXConversion } from "./fx-transaction-splitter";
 import { filterDuplicateActivities } from "./activity-deduplicator";
+import { findIbkrAccount } from "./ibkr-accounts";
 import type { CsvRowData } from "../presets/types";
 
 type AccountsAPI = HostAPI["accounts"];
@@ -63,12 +64,10 @@ export async function refreshAndUpdateAccountPreviews(
   }
 
   // Update previews with fresh account data for deduplication
-  const updatedPreviews = currentPreviews.map((preview) => {
-    const existingAccount = freshAccounts.find(
-      (a) => a.name === preview.name && a.currency === preview.currency
-    );
-    return { ...preview, existingAccount };
-  });
+  const updatedPreviews = currentPreviews.map((preview) => ({
+    ...preview,
+    existingAccount: findIbkrAccount(freshAccounts, preview),
+  }));
 
   return { freshAccounts, updatedPreviews };
 }
@@ -249,6 +248,8 @@ export function createTransactionGroups(
     return {
       currency: preview.currency,
       accountName: preview.name,
+      ibkrAccount: preview.ibkrAccount,
+      ibkrLabel: preview.ibkrLabel,
       transactions,
       summary: {
         trades: transactions.filter(

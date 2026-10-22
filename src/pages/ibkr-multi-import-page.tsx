@@ -8,6 +8,7 @@ import { generateAccountNames } from "../lib/account-name-generator";
 import { fetchFlexQuery, fetchFlexQueryRange, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
 import { importValidated } from "../lib/validated-import";
+import { accountNamePrefix, findIbkrAccount, partitionByIbkrAccount } from "../lib/ibkr-accounts";
 import {
   refreshAndUpdateAccountPreviews,
   processAndResolveData,
@@ -179,26 +180,18 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
   // Process parsed data and advance to step 2 (memoized to prevent stale closures)
   const processDataToStep2 = useCallback((data: CsvRowData[]) => {
-    const currencies = detectCurrenciesFromIBKR(data);
-    const accountNames = generateAccountNames(groupName, currencies);
-
-    const transactionCounts = new Map<string, number>();
-    data.forEach((row) => {
-      const currency = row.CurrencyPrimary;
-      if (currency) {
-        transactionCounts.set(currency, (transactionCounts.get(currency) || 0) + 1);
-      }
-    });
-
-    const previews = accountNames.map((acc) => {
-      const existingAccount = accounts.find(
-        (a) => a.name === acc.name && a.currency === acc.currency
-      );
-      return {
-        ...acc,
-        transactionCount: transactionCounts.get(acc.currency) || 0,
-        existingAccount,
-      };
+    // One set of currency accounts per IBKR account, named after its alias
+    const previews = partitionByIbkrAccount(data).flatMap((partition) => {
+      const ibkrLabel = partition.ibkrAccount ? partition.label : undefined;
+      const currencies = detectCurrenciesFromIBKR(partition.rows);
+      return generateAccountNames(groupName, currencies, ibkrLabel).map((acc) => {
+        const preview = { ...acc, ibkrAccount: partition.ibkrAccount || undefined, ibkrLabel };
+        return {
+          ...preview,
+          transactionCount: partition.rows.filter((row) => row.CurrencyPrimary === acc.currency).length,
+          existingAccount: findIbkrAccount(accounts, preview),
+        };
+      });
     });
 
     setAccountPreviews(previews);
@@ -315,6 +308,98 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     });
   }, []);
 
+  // Steps 2-5 of import preparation for the rows of one IBKR account.
+  // Returns null on a fatal processing error; warnings are pushed to `errors`.
+  const prepareTransactionGroups = async (
+    rows: CsvRowData[],
+    previews: AccountPreview[],
+    errors: string[]
+  ): Promise<TransactionGroup[] | null> => {
+    let activitiesWithFX: ActivityImport[] = [];
+    // 2. Process data, resolve tickers, convert to activities
+    try {
+      const processResult = await processAndResolveData(
+        rows,
+        previews,
+        ctx?.api?.market?.searchTicker,
+        (current, total) => {
+          if (isMountedRef.current) setResolutionProgress({ current, total });
+        }
+      );
+      // Check if still mounted after async operation
+      if (!isMountedRef.current) return [];
+      activitiesWithFX = processResult.activities;
+
+      // Log conversion errors for user visibility
+      if (processResult.conversionErrors.length > 0) {
+        const errorSummary = `${processResult.conversionErrors.length} transaction(s) failed to convert`;
+        debug.warn(errorSummary, processResult.conversionErrors);
+        errors.push(errorSummary);
+      }
+      if (processResult.skippedCount > 0) {
+        debug.log(`Skipped ${processResult.skippedCount} unrecognized transaction types`);
+      }
+      // Warn user about skipped FX conversions (missing accounts, invalid format, etc.)
+      if (processResult.skippedFXConversions.length > 0) {
+        const fxSummary = `${processResult.skippedFXConversions.length} FX conversion(s) skipped`;
+        debug.warn(fxSummary, processResult.skippedFXConversions);
+        errors.push(fxSummary);
+      }
+    } catch (error) {
+      if (!isMountedRef.current) return [];
+      const msg = `Failed to process transactions: ${getErrorMessage(error)}`;
+      debug.error(msg);
+      errors.push(msg);
+      return null;
+    }
+
+    // 3. Fetch existing activities for deduplication
+    let existingActivities: import("../types").ActivityFingerprint[] = [];
+    try {
+      const fetchResult = await fetchExistingActivitiesForDedup(
+        ctx?.api?.activities,
+        previews
+      );
+      // Check if still mounted after async operation
+      if (!isMountedRef.current) return [];
+      existingActivities = fetchResult.activities;
+      if (!fetchResult.complete) {
+        const msg = `Could not load activities from ${fetchResult.failedAccounts.length} account(s): ${fetchResult.failedAccounts.join(", ")}. Duplicates may occur for these accounts.`;
+        debug.warn(msg);
+        errors.push(msg);
+      }
+    } catch (error) {
+      if (!isMountedRef.current) return [];
+      const msg = `Failed to fetch existing activities for deduplication: ${getErrorMessage(error)}`;
+      debug.warn(msg);
+      errors.push(msg);
+      // Continue without deduplication - non-fatal but may create duplicates
+    }
+
+    // 4. Deduplicate activities
+    let dedupedActivities = activitiesWithFX;
+    try {
+      dedupedActivities = deduplicateActivities(activitiesWithFX, existingActivities);
+    } catch (error) {
+      const msg = `Deduplication failed, proceeding without: ${getErrorMessage(error)}`;
+      debug.warn(msg);
+      errors.push(msg);
+      // Continue with original activities - non-fatal but may create duplicates
+    }
+
+    // 5. Group by currency and create transaction groups
+    try {
+      const groupedByCurrency = groupActivitiesByCurrency(dedupedActivities);
+      return createTransactionGroups(previews, groupedByCurrency);
+    } catch (error) {
+      const msg = `Failed to group transactions: ${getErrorMessage(error)}`;
+      debug.error(msg);
+      errors.push(msg);
+    }
+
+    return [];
+  };
+
   // Step 2 → Step 3: Process and resolve tickers
   const handleProceedToStep3 = async () => {
     setIsResolving(true);
@@ -322,7 +407,6 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
     const errors: string[] = [];
     let updatedPreviews = accountPreviews;
-    let activitiesWithFX: ActivityImport[] = [];
 
     // 1. Refresh accounts and update previews
     try {
@@ -344,93 +428,24 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
       // Continue with existing accounts - non-fatal
     }
 
-    // 2. Process data, resolve tickers, convert to activities
-    try {
-      const processResult = await processAndResolveData(
-        parsedData,
-        updatedPreviews,
-        ctx?.api?.market?.searchTicker,
-        (current, total) => {
-          if (isMountedRef.current) setResolutionProgress({ current, total });
-        }
+    // 2-5. Process each IBKR account separately: FX conversions, dedup and
+    // grouping are scoped to the Wealthfolio accounts of that IBKR account.
+    const allGroups: TransactionGroup[] = [];
+    for (const partition of partitionByIbkrAccount(parsedData)) {
+      const partitionPreviews = updatedPreviews.filter(
+        (p) => (p.ibkrAccount ?? "") === partition.ibkrAccount
       );
-      // Check if still mounted after async operation
-      if (!isMountedRef.current) return;
-      activitiesWithFX = processResult.activities;
-
-      // Log conversion errors for user visibility
-      if (processResult.conversionErrors.length > 0) {
-        const errorSummary = `${processResult.conversionErrors.length} transaction(s) failed to convert`;
-        debug.warn(errorSummary, processResult.conversionErrors);
-        errors.push(errorSummary);
+      const groups = await prepareTransactionGroups(partition.rows, partitionPreviews, errors);
+      if (groups === null) {
+        // Fatal processing error - cannot continue without activities
+        setResolutionProgress(undefined);
+        setIsResolving(false);
+        return;
       }
-      if (processResult.skippedCount > 0) {
-        debug.log(`Skipped ${processResult.skippedCount} unrecognized transaction types`);
-      }
-      // Warn user about skipped FX conversions (missing accounts, invalid format, etc.)
-      if (processResult.skippedFXConversions.length > 0) {
-        const fxSummary = `${processResult.skippedFXConversions.length} FX conversion(s) skipped`;
-        debug.warn(fxSummary, processResult.skippedFXConversions);
-        errors.push(fxSummary);
-      }
-    } catch (error) {
       if (!isMountedRef.current) return;
-      const msg = `Failed to process transactions: ${getErrorMessage(error)}`;
-      debug.error(msg);
-      errors.push(msg);
-      // This is fatal - cannot continue without activities
-      setResolutionProgress(undefined);
-      setIsResolving(false);
-      return;
+      allGroups.push(...groups);
     }
-
-    // 3. Fetch existing activities for deduplication
-    let existingActivities: import("../types").ActivityFingerprint[] = [];
-    try {
-      const fetchResult = await fetchExistingActivitiesForDedup(
-        ctx?.api?.activities,
-        updatedPreviews
-      );
-      // Check if still mounted after async operation
-      if (!isMountedRef.current) return;
-      existingActivities = fetchResult.activities;
-      if (!fetchResult.complete) {
-        const msg = `Could not load activities from ${fetchResult.failedAccounts.length} account(s): ${fetchResult.failedAccounts.join(", ")}. Duplicates may occur for these accounts.`;
-        debug.warn(msg);
-        errors.push(msg);
-      }
-    } catch (error) {
-      if (!isMountedRef.current) return;
-      const msg = `Failed to fetch existing activities for deduplication: ${getErrorMessage(error)}`;
-      debug.warn(msg);
-      errors.push(msg);
-      // Continue without deduplication - non-fatal but may create duplicates
-    }
-
-    // Check mounted state before final state updates
-    if (!isMountedRef.current) return;
-
-    // 4. Deduplicate activities
-    let dedupedActivities = activitiesWithFX;
-    try {
-      dedupedActivities = deduplicateActivities(activitiesWithFX, existingActivities);
-    } catch (error) {
-      const msg = `Deduplication failed, proceeding without: ${getErrorMessage(error)}`;
-      debug.warn(msg);
-      errors.push(msg);
-      // Continue with original activities - non-fatal but may create duplicates
-    }
-
-    // 5. Group by currency and create transaction groups
-    try {
-      const groupedByCurrency = groupActivitiesByCurrency(dedupedActivities);
-      const groups = createTransactionGroups(updatedPreviews, groupedByCurrency);
-      setTransactionGroups(groups);
-    } catch (error) {
-      const msg = `Failed to group transactions: ${getErrorMessage(error)}`;
-      debug.error(msg);
-      errors.push(msg);
-    }
+    setTransactionGroups(allGroups);
 
     // Log any accumulated warnings
     if (errors.length > 0) {
@@ -455,13 +470,15 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     let currentProgress = 0;
     const totalSteps = accountPreviews.length + transactionGroups.length;
 
-    // Track created/existing accounts by currency (avoid mutating state directly)
-    const accountsByCurrency = new Map<string, Account>();
+    // Track created/existing accounts per IBKR account and currency
+    // (avoid mutating state directly)
+    const accountKey = (ibkrAccount: string | undefined, currency: string) => `${ibkrAccount ?? ""}|${currency}`;
+    const accountsByKey = new Map<string, Account>();
 
     // Initialize with existing accounts from previews
     for (const preview of accountPreviews) {
       if (preview.existingAccount) {
-        accountsByCurrency.set(preview.currency, preview.existingAccount);
+        accountsByKey.set(accountKey(preview.ibkrAccount, preview.currency), preview.existingAccount);
       }
     }
 
@@ -483,13 +500,14 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
               name: preview.name,
               currency: preview.currency,
               group: preview.group,
+              accountNumber: preview.ibkrAccount,
               accountType: "SECURITIES",
               trackingMode: "TRANSACTIONS",
               isDefault: false,
               isActive: true,
             });
             // Track in local map instead of mutating state
-            accountsByCurrency.set(preview.currency, newAccount);
+            accountsByKey.set(accountKey(preview.ibkrAccount, preview.currency), newAccount);
           } catch (error) {
             debug.error(`Failed to create account ${preview.name}:`, error);
           }
@@ -500,30 +518,35 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
       // Pre-create any additional accounts needed for transaction currencies
       // This prevents race conditions during the import phase
-      const allCurrenciesNeeded = new Set<string>();
+      const accountsNeeded = new Map<string, { ibkrAccount?: string; ibkrLabel?: string; currency: string }>();
       for (const group of transactionGroups) {
         for (const txn of group.transactions) {
-          const txnCurrency = txn.currency || group.currency;
-          allCurrenciesNeeded.add(txnCurrency);
+          const currency = txn.currency || group.currency;
+          accountsNeeded.set(accountKey(group.ibkrAccount, currency), {
+            ibkrAccount: group.ibkrAccount,
+            ibkrLabel: group.ibkrLabel,
+            currency,
+          });
         }
       }
 
       // Create any missing accounts before starting imports
-      for (const currency of allCurrenciesNeeded) {
+      for (const [key, { ibkrAccount, ibkrLabel, currency }] of accountsNeeded) {
         if (!isMountedRef.current) return;
-        if (!accountsByCurrency.has(currency)) {
+        if (!accountsByKey.has(key)) {
           try {
-            const newAccountName = `${groupName} - ${currency}`;
+            const newAccountName = `${accountNamePrefix(groupName, ibkrLabel)} - ${currency}`;
             const newAccount = await ctx.api.accounts.create({
               name: newAccountName,
               currency: currency,
               group: groupName,
+              accountNumber: ibkrAccount,
               accountType: "SECURITIES",
               trackingMode: "TRANSACTIONS",
               isDefault: false,
               isActive: true,
             });
-            accountsByCurrency.set(currency, newAccount);
+            accountsByKey.set(key, newAccount);
             debug.log(`Pre-created account for currency: ${currency}`);
           } catch (error) {
             debug.error(`Failed to pre-create account for ${currency}:`, error);
@@ -563,7 +586,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
           // Import transactions grouped by their actual currency
           for (const [txnCurrency, transactions] of transactionsByCurrency) {
-            const targetAccount = accountsByCurrency.get(txnCurrency);
+            const targetAccount = accountsByKey.get(accountKey(group.ibkrAccount, txnCurrency));
 
             if (!targetAccount) {
               // Account creation failed earlier - skip these transactions
@@ -594,7 +617,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
           }
 
           results.push({
-            accountId: accountsByCurrency.get(group.currency)?.id || "",
+            accountId: accountsByKey.get(accountKey(group.ibkrAccount, group.currency))?.id || "",
             accountName: group.accountName,
             currency: group.currency,
             success: groupTotalImported,
@@ -606,7 +629,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
           const errorMessage = getErrorMessage(error);
 
           results.push({
-            accountId: accountsByCurrency.get(group.currency)?.id || "",
+            accountId: accountsByKey.get(accountKey(group.ibkrAccount, group.currency))?.id || "",
             accountName: group.accountName,
             currency: group.currency,
             success: groupTotalImported, // Reflect partial success

@@ -10,6 +10,7 @@ import {
   updateConfigStatus,
 } from './lib/flex-config-storage';
 import { generateAccountNames } from './lib/account-name-generator';
+import { findIbkrAccount } from './lib/ibkr-accounts';
 import { AsyncLock } from './lib/async-lock';
 import { QUERY_STALE_TIME_MS, AUTO_FETCH_DEBOUNCE_MS } from './lib/constants';
 import {
@@ -112,22 +113,22 @@ export function enable(ctx: AddonContext) {
    */
   async function getOrCreateAccountsForGroup(
     accountGroup: string,
-    currencies: string[]
+    currencies: string[],
+    ibkr?: { ibkrAccount: string; label: string }
   ): Promise<Map<string, Account>> {
     const accountsByCurrency = new Map<string, Account>();
 
     // Get existing accounts
     const allAccounts = await ctx.api.accounts?.getAll() || [];
     const groupAccounts = allAccounts.filter((a) => a.group === accountGroup);
+    const ibkrAccount = ibkr?.ibkrAccount || undefined;
 
     // Generate expected account names
-    const expectedNames = generateAccountNames(accountGroup, currencies);
+    const expectedNames = generateAccountNames(accountGroup, currencies, ibkrAccount ? ibkr?.label : undefined);
 
     for (const expected of expectedNames) {
-      // Check if account exists
-      const existing = groupAccounts.find(
-        (a) => a.name === expected.name && a.currency === expected.currency
-      );
+      // Check if account exists (by IBKR account number, then by name)
+      const existing = findIbkrAccount(groupAccounts, { ...expected, ibkrAccount });
 
       if (existing) {
         accountsByCurrency.set(expected.currency, existing);
@@ -138,6 +139,7 @@ export function enable(ctx: AddonContext) {
             name: expected.name,
             currency: expected.currency,
             group: accountGroup,
+            accountNumber: ibkrAccount,
             accountType: 'SECURITIES',
             trackingMode: 'TRANSACTIONS',
             isDefault: false,

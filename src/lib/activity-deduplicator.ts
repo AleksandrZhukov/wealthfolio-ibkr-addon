@@ -200,6 +200,11 @@ export function createExistingActivityFingerprint(activity: {
  * @param existingActivities - Activities already in the database
  * @returns Activities that don't exist in the database
  */
+/** TransactionID that the activity converter appends to comments as "[IBKR <id>]". */
+export function extractIbkrTransactionId(comment: string | undefined | null): string | undefined {
+  return comment ? /\[IBKR ([^\]\s]+)\]/.exec(comment)?.[1] : undefined;
+}
+
 export function filterDuplicateActivities(
   newActivities: ActivityImport[],
   existingActivities: Array<{
@@ -214,7 +219,9 @@ export function filterDuplicateActivities(
     comment?: string;
   }>
 ): { unique: ActivityImport[]; duplicates: ActivityImport[] } {
-  // Build set of existing fingerprints
+  // Activities tagged with an IBKR TransactionID are matched by that id;
+  // content fingerprints cover activities imported without one.
+  const existingTxids = new Set<string>();
   const existingFingerprints = new Set<string>();
   // For debugging: store both fingerprint and original activity for comparison
   type DebugEntry = { activity: typeof existingActivities[0]; fingerprint: string };
@@ -254,7 +261,12 @@ export function filterDuplicateActivities(
       activityDate: formatDateToISO(activity.activityDate),
     };
     const fingerprint = createExistingActivityFingerprint(normalizedActivity);
-    existingFingerprints.add(fingerprint);
+    const txid = extractIbkrTransactionId(activity.comment);
+    if (txid) {
+      existingTxids.add(txid);
+    } else {
+      existingFingerprints.add(fingerprint);
+    }
 
     // Track by date+symbol for debugging
     const key = `${normalizeDate(activity.activityDate)}|${normalizeString(activity.assetId)}`;
@@ -272,13 +284,20 @@ export function filterDuplicateActivities(
   // Also track fingerprints within the new activities to handle
   // duplicates within the same import batch
   const newFingerprints = new Set<string>();
+  const newTxids = new Set<string>();
 
   let debugLogCount = 0;
 
   for (const activity of newActivities) {
     const fingerprint = createActivityFingerprint(activity);
+    const txid = extractIbkrTransactionId(activity.comment);
+    // IBKR repeats identical postings (e.g. same-day tax charge/reversal
+    // chains); with a TransactionID only the id decides within a batch.
+    const isDuplicate = txid
+      ? existingTxids.has(txid) || newTxids.has(txid) || existingFingerprints.has(fingerprint)
+      : existingFingerprints.has(fingerprint) || newFingerprints.has(fingerprint);
 
-    if (existingFingerprints.has(fingerprint) || newFingerprints.has(fingerprint)) {
+    if (isDuplicate) {
       duplicates.push(activity);
     } else {
       // Debug: Log why it's not matching - show field-by-field comparison
@@ -302,6 +321,7 @@ export function filterDuplicateActivities(
 
       unique.push(activity);
       newFingerprints.add(fingerprint);
+      if (txid) newTxids.add(txid);
     }
   }
 

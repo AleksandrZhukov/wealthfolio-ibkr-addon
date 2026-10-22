@@ -43,9 +43,8 @@ export const IBKRCurrencyPreviewStep = ({
       <div>
         <h2 className="mb-2 text-lg font-semibold">Currency Accounts Preview</h2>
         <p className="text-muted-foreground text-sm">
-          Detected {accountPreviews.length} currency
-          {accountPreviews.length > 1 ? "ies" : ""} across all files. Review and adjust
-          account names if needed.
+          {accountPreviews.length} account{accountPreviews.length === 1 ? "" : "s"} (one per
+          IBKR account and currency). Review and adjust account names if needed.
         </p>
       </div>
 

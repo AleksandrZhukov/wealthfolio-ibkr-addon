@@ -31,6 +31,10 @@ export interface AccountPreview {
   transactionCount?: number;
   /** Existing account if one matches, undefined if new account will be created */
   existingAccount?: Account;
+  /** IBKR ClientAccountID this account receives transactions from */
+  ibkrAccount?: string;
+  /** IBKR AccountAlias (or ClientAccountID) used in account names */
+  ibkrLabel?: string;
 }
 
 /**
@@ -57,6 +61,10 @@ export interface TransactionGroup {
   transactions: ActivityImport[];
   /** Summary of transaction types */
   summary: TransactionSummary;
+  /** IBKR ClientAccountID the transactions came from */
+  ibkrAccount?: string;
+  /** IBKR AccountAlias (or ClientAccountID) used in account names */
+  ibkrLabel?: string;
 }
 
 /**

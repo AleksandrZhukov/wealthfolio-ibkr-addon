@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-22
+
+### Added
+- Each IBKR account (ClientAccountID) gets its own Wealthfolio accounts, named after its IBKR alias: "IBKR-Main - USD". The IBKR account number is stored as the account number, so renamed accounts still match on later imports and auto-fetch
+
+### Fixed
+- Repeated same-day IBKR postings were also collapsed by the addon's own batch dedup; activities with an IBKR TransactionID are now deduplicated by that id
+
 ## [1.3.0] - 2026-10-22
 
 ### Fixed

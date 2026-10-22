@@ -1474,3 +1474,26 @@ describe("Activity Deduplicator", () => {
     });
   });
 });
+
+describe("IBKR TransactionID dedup", () => {
+  const tax = (txid: string) =>
+    ({ accountId: "a", date: "2026-01-15", symbol: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: `AAPL TAX [IBKR ${txid}]`, isDraft: false, isValid: true }) as any;
+
+  it("keeps identical postings with different TransactionIDs in one batch", () => {
+    const { unique } = filterDuplicateActivities([tax("1"), tax("2"), tax("3")], []);
+    expect(unique).toHaveLength(3);
+  });
+
+  it("drops a posting whose TransactionID already exists", () => {
+    const existing = [{ activityDate: "2026-01-15", assetId: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: "AAPL TAX [IBKR 2]" }];
+    const { unique, duplicates } = filterDuplicateActivities([tax("1"), tax("2")], existing);
+    expect(unique.map((a: any) => a.comment)).toEqual(["AAPL TAX [IBKR 1]"]);
+    expect(duplicates).toHaveLength(1);
+  });
+
+  it("still matches legacy activities imported without a TransactionID by content", () => {
+    const existing = [{ activityDate: "2026-01-15", assetId: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: "AAPL TAX" }];
+    const { unique } = filterDuplicateActivities([tax("9")], existing);
+    expect(unique).toHaveLength(0);
+  });
+});

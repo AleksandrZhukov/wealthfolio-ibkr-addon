@@ -1,3 +1,5 @@
+import { accountNamePrefix } from "./ibkr-accounts";
+
 /**
  * Generates account names for multi-currency IBKR import
  * Creates one account per currency with format: "{groupName} - {currency}"
@@ -8,11 +10,12 @@
  */
 export function generateAccountNames(
   groupName: string,
-  currencies: string[]
+  currencies: string[],
+  ibkrLabel?: string
 ): Array<{ currency: string; name: string; group: string }> {
   return currencies.map((currency) => ({
     currency,
-    name: `${groupName} - ${currency}`,
+    name: `${accountNamePrefix(groupName, ibkrLabel)} - ${currency}`,
     group: groupName,
   }));
 }
