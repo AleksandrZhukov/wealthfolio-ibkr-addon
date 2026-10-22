@@ -212,7 +212,7 @@ describe("Error Handling", () => {
               status: 200,
               status_text: "OK",
               headers: {},
-              body: `<FlexQueryResponse><FlexStatements><FlexStatement>Symbol,Quantity\nAAPL,10</FlexStatement></FlexStatements></FlexQueryResponse>`,
+              body: `Symbol,Quantity\nAAPL,10`,
             });
           }),
         };
@@ -259,7 +259,7 @@ describe("Error Handling", () => {
               status: 200,
               status_text: "OK",
               headers: {},
-              body: `<FlexQueryResponse><FlexStatements><FlexStatement>Symbol,Quantity\nAAPL,10</FlexStatement></FlexStatements></FlexQueryResponse>`,
+              body: `Symbol,Quantity\nAAPL,10`,
             });
           }),
         };

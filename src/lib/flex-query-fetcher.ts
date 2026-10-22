@@ -17,6 +17,9 @@ import { FLEX_QUERY_INITIAL_DELAY_MS, FLEX_QUERY_MAX_DELAY_MS, FLEX_QUERY_ABSOLU
 export interface FlexQueryConfig {
   token: string;
   queryId: string;
+  /** Optional date range (YYYYMMDD) overriding the query's Period; both or neither */
+  fromDate?: string;
+  toDate?: string;
 }
 
 /**
@@ -273,7 +276,8 @@ function parseFlexResponse(xml: string): {
 export async function sendFlexRequest(
   config: FlexQueryConfig
 ): Promise<FlexQueryRequestResult> {
-  const url = `${FLEX_API_BASE}/SendRequest?t=${encodeURIComponent(config.token)}&q=${encodeURIComponent(config.queryId)}&v=3`;
+  const range = config.fromDate && config.toDate ? `&fd=${config.fromDate}&td=${config.toDate}` : "";
+  const url = `${FLEX_API_BASE}/SendRequest?t=${encodeURIComponent(config.token)}&q=${encodeURIComponent(config.queryId)}&v=3${range}`;
 
   try {
     const client = getHttpClient();
@@ -378,7 +382,14 @@ export async function getFlexStatement(
       };
     }
 
-    // Success - return the CSV data
+    if (responseBody.trimStart().startsWith("<FlexQueryResponse")) {
+      return {
+        success: false,
+        error: "IBKR returned an XML statement. Set the Flex Query Delivery Format to CSV.",
+      };
+    }
+
+    // Success - return the CSV data (empty when the range has no activity)
     return {
       success: true,
       csv: responseBody,
@@ -468,7 +479,7 @@ export async function fetchFlexQuery(
 
     const statementResult = await getFlexStatement(config, requestResult.referenceCode);
 
-    if (statementResult.success && statementResult.csv) {
+    if (statementResult.success && statementResult.csv !== undefined) {
       onProgress?.("Statement retrieved successfully");
       return {
         success: true,
@@ -501,6 +512,58 @@ export async function fetchFlexQuery(
     success: false,
     error: "Max retries exceeded waiting for statement generation",
   };
+}
+
+// IBKR caps a Flex statement at 365 days.
+const MAX_RANGE_DAYS = 365;
+// SendRequest allows at most 10 requests per minute.
+const RANGE_REQUEST_SPACING_MS = 7000;
+
+function toFlexDate(date: Date): string {
+  return date.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+/**
+ * Split [from, to] into consecutive ranges of at most 365 days (inclusive).
+ */
+export function splitFlexDateRange(from: Date, to: Date): { fromDate: string; toDate: string }[] {
+  const ranges: { fromDate: string; toDate: string }[] = [];
+  const dayMs = 24 * 60 * 60 * 1000;
+  let start = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  const end = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()));
+  while (start <= end) {
+    const chunkEnd = new Date(Math.min(start.getTime() + (MAX_RANGE_DAYS - 1) * dayMs, end.getTime()));
+    ranges.push({ fromDate: toFlexDate(start), toDate: toFlexDate(chunkEnd) });
+    start = new Date(chunkEnd.getTime() + dayMs);
+  }
+  return ranges;
+}
+
+/**
+ * Fetch a date range longer than one Flex statement allows by requesting it
+ * in 365-day chunks. Returns one CSV per chunk; stops at the first failure.
+ */
+export async function fetchFlexQueryRange(
+  config: FlexQueryConfig,
+  from: Date,
+  to: Date,
+  onProgress?: (message: string) => void
+): Promise<{ success: boolean; csvs: string[]; error?: string }> {
+  const ranges = splitFlexDateRange(from, to);
+  const csvs: string[] = [];
+  for (const [i, range] of ranges.entries()) {
+    if (i > 0) await delay(RANGE_REQUEST_SPACING_MS);
+    const label = `${range.fromDate}–${range.toDate} (${i + 1}/${ranges.length})`;
+    const result = await fetchFlexQuery(
+      { ...config, ...range },
+      { onProgress: (msg) => onProgress?.(`${label}: ${msg}`) }
+    );
+    if (!result.success || result.csv === undefined) {
+      return { success: false, csvs, error: `${label}: ${result.error ?? "Failed to fetch statement"}` };
+    }
+    csvs.push(result.csv);
+  }
+  return { success: true, csvs };
 }
 
 /**

@@ -5,7 +5,7 @@ import { debug } from "../lib/debug-logger";
 import { getErrorMessage } from "../lib/shared-utils";
 import { detectCurrenciesFromIBKR } from "../lib/currency-detector";
 import { generateAccountNames } from "../lib/account-name-generator";
-import { fetchFlexQuery, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
+import { fetchFlexQuery, fetchFlexQueryRange, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
 import {
   refreshAndUpdateAccountPreviews,
@@ -48,6 +48,8 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   const [dataSource, setDataSource] = useState<DataSource>("manual");
   const [flexToken, setFlexToken] = useState("");
   const [flexQueryId, setFlexQueryId] = useState("");
+  // Optional YYYY-MM-DD start date; when set, fetch history up to today in 365-day chunks
+  const [flexFromDate, setFlexFromDate] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [rememberCredentials, setRememberCredentials] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -213,21 +215,27 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         // Fetch from Flex Query API
         setLoadingMessage("Connecting to IBKR...");
 
-        const result = await fetchFlexQuery(
-          { token: flexToken, queryId: flexQueryId },
-          {
-            onProgress: (msg) => {
-              if (isMountedRef.current) setLoadingMessage(msg);
-            },
+        const onProgress = (msg: string) => {
+          if (isMountedRef.current) setLoadingMessage(msg);
+        };
+        const flexConfig = { token: flexToken, queryId: flexQueryId };
+        let csvs: string[];
+        if (flexFromDate) {
+          const range = await fetchFlexQueryRange(flexConfig, new Date(flexFromDate), new Date(), onProgress);
+          if (!range.success) {
+            throw new Error(range.error || "Failed to fetch data from IBKR");
           }
-        );
+          csvs = range.csvs;
+        } else {
+          const result = await fetchFlexQuery(flexConfig, { onProgress });
+          if (!result.success || !result.csv) {
+            throw new Error(result.error || "Failed to fetch data from IBKR");
+          }
+          csvs = [result.csv];
+        }
 
         // Check if still mounted after async operation
         if (!isMountedRef.current) return;
-
-        if (!result.success || !result.csv) {
-          throw new Error(result.error || "Failed to fetch data from IBKR");
-        }
 
         // Save credentials if requested (with validation)
         if (rememberCredentials && ctx?.api?.secrets) {
@@ -253,15 +261,22 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
         // Parse the fetched CSV
         setLoadingMessage("Parsing transactions...");
-        const parsed = parseFlexQueryCSV(result.csv);
+        const rows = csvs.flatMap((csv) => {
+          if (!csv.trim()) return [];
+          const parsed = parseFlexQueryCSV(csv);
+          if (parsed.errors.length > 0) {
+            debug.warn("Parse warnings:", parsed.errors);
+          }
+          return parsed.rows;
+        });
 
-        if (parsed.errors.length > 0) {
-          debug.warn("Parse warnings:", parsed.errors);
+        if (rows.length === 0) {
+          throw new Error("The Flex statement has no trades or cash transactions for this period.");
         }
 
-        setParsedData(parsed.rows);
+        setParsedData(rows);
         setLoadingMessage("");
-        processDataToStep2(parsed.rows);
+        processDataToStep2(rows);
 
       } else {
         // Parse manual CSV files
@@ -278,7 +293,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
       setIsLoadingData(false);
       setLoadingMessage(`Error: ${errorMessage}`);
     }
-  }, [dataSource, flexToken, flexQueryId, rememberCredentials, ctx, selectedFiles, processDataToStep2, parseMultipleCsvFiles]);
+  }, [dataSource, flexToken, flexQueryId, flexFromDate, rememberCredentials, ctx, selectedFiles, processDataToStep2, parseMultipleCsvFiles]);
 
   // Process manual CSV data when it's ready
   useEffect(() => {
@@ -631,6 +646,8 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
               setToken: setFlexToken,
               queryId: flexQueryId,
               setQueryId: setFlexQueryId,
+              fromDate: flexFromDate,
+              setFromDate: setFlexFromDate,
               showToken,
               setShowToken,
               rememberCredentials,

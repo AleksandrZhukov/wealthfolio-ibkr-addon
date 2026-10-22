@@ -19,6 +19,9 @@ export interface FlexQueryConfig {
   setToken: (token: string) => void;
   queryId: string;
   setQueryId: (id: string) => void;
+  /** Optional YYYY-MM-DD start date for fetching more than one year */
+  fromDate: string;
+  setFromDate: (date: string) => void;
   showToken: boolean;
   setShowToken: (show: boolean) => void;
   rememberCredentials: boolean;
@@ -63,6 +66,8 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
     setToken: setFlexToken,
     queryId: flexQueryId,
     setQueryId: setFlexQueryId,
+    fromDate: flexFromDate,
+    setFromDate: setFlexFromDate,
     showToken,
     setShowToken,
     rememberCredentials,
@@ -216,6 +221,21 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
               onChange={(e) => setFlexQueryId(e.target.value)}
               placeholder="Enter your Flex Query ID (numeric)"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="flexFromDate">History from (optional)</Label>
+            <Input
+              id="flexFromDate"
+              type="date"
+              value={flexFromDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setFlexFromDate(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave empty to use the query&apos;s Period. With a date, history up to today is
+              fetched in 365-day chunks, about 10 seconds per year.
+            </p>
           </div>
 
           <div className="flex items-center justify-between pt-2">

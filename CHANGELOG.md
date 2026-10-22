@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-22
+
+### Added
+- "History from" date in the Flex import: fetches everything up to today in 365-day chunks using the Flex `fd`/`td` parameters, spaced to respect IBKR's 10 requests/minute limit
+
+### Fixed
+- An XML statement now fails with a hint to set the query Format to CSV instead of importing nothing
+- A period without activity no longer counts as a failed statement
+
 ## [1.1.1] - 2026-10-22
 
 ### Fixed
