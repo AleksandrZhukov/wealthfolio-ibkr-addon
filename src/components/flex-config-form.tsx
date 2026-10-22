@@ -65,7 +65,10 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
   const autoFetchEnabled = watch("autoFetchEnabled");
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    // The addon iframe is sandboxed without `allow-forms`, so the browser drops
+    // native form submission before the submit event fires. Submit from the
+    // button's click handler instead.
+    <form onSubmit={(e) => e.preventDefault()}>
       <DialogHeader>
         <DialogTitle>
           {isEditing ? "Edit Flex Query Configuration" : "Add Flex Query Configuration"}
@@ -146,7 +149,7 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="button" onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

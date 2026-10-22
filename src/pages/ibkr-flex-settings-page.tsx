@@ -69,22 +69,22 @@ const IBKRFlexSettingsPage: React.FC<IBKRFlexSettingsPageProps> = ({ ctx }) => {
   const deleteConfigMutation = useDeleteConfig(secrets);
   const saveTokenMutation = useSaveToken(secrets);
 
-  // Load accounts to get existing groups
-  const accountsApi = ctx?.api?.accounts;
-  const logger = ctx?.api?.logger;
+  // Load accounts to get existing groups. Depend on `ctx`, not `ctx.api.accounts`:
+  // the sandbox returns a fresh proxy on every property access, which would
+  // re-run this effect after each render and loop forever.
   useEffect(() => {
     const loadAccounts = async () => {
-      if (!accountsApi) return;
+      if (!ctx?.api) return;
       try {
-        const accounts: Account[] = await accountsApi.getAll();
+        const accounts: Account[] = await ctx.api.accounts.getAll();
         const groups = [...new Set(accounts.map((a) => a.group).filter(Boolean))] as string[];
         setExistingGroups(groups.sort());
       } catch (e) {
-        logger?.error(`Failed to load accounts: ${getErrorMessage(e)}`);
+        ctx.api.logger.error(`Failed to load accounts: ${getErrorMessage(e)}`);
       }
     };
     loadAccounts();
-  }, [accountsApi, logger]);
+  }, [ctx]);
 
   // Sync token input with saved token
   useEffect(() => {
