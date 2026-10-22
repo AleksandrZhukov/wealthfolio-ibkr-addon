@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-22
+
+### Added
+- Stock splits from the Flex Corporate Actions section ("SPLIT 10 FOR 1") are imported as `SPLIT` activities; a reverse split posted as two rows is applied once
+
+### Fixed
+- IBKR share-class symbols with a space ("BRK B") resolve to the Yahoo form ("BRK-B") instead of an unrelated ticker such as BRKU
+
 ## [1.4.0] - 2026-10-22
 
 ### Added

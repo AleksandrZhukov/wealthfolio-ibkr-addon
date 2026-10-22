@@ -40,6 +40,17 @@ function asIBKRRow(row: CsvRowData): IBKRTransactionRow {
  * - For stock trades: data is in standard columns (Exchange, Quantity, TradePrice, etc.)
  * - For dividends: data is SHIFTED to different columns (see getDividendFields below)
  */
+/**
+ * Split ratio from an IBKR corporate action description: "SPLIT 10 FOR 1" → 10,
+ * "SPLIT 1 FOR 20" (reverse) → 0.05. Undefined when the row is not a split.
+ */
+export function parseSplitRatio(description: string): number | undefined {
+  const match = /\bSPLIT\s+(\d+(?:\.\d+)?)\s+FOR\s+(\d+(?:\.\d+)?)/i.exec(description);
+  if (!match) return undefined;
+  const ratio = Number(match[1]) / Number(match[2]);
+  return Number.isFinite(ratio) && ratio > 0 ? ratio : undefined;
+}
+
 function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   const exchange = row.Exchange?.trim();
   const transactionType = row.TransactionType?.trim();
@@ -47,6 +58,16 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   const notesCodes = row["Notes/Codes"]?.trim();
   const description = row.Description?.trim() ?? "";
   const transferDirection = row._TRANSFER_DIRECTION?.trim();
+
+  // Corporate Actions section: "NFLX(US64110L1061) SPLIT 10 FOR 1 (...)"
+  if (parseSplitRatio(description) !== undefined) {
+    return {
+      classification: "STOCK_SPLIT",
+      shouldImport: true,
+      warningMessages: [],
+      originalRow: row,
+    };
+  }
 
   // For dividends, IBKR shifts data to different columns
   // Check PrincipalAdjustFactor which contains Notes/Codes for dividend rows
@@ -492,6 +513,8 @@ function classificationToActivityType(
       return "IBKR_BUY";
     case "STOCK_SELL":
       return "IBKR_SELL";
+    case "STOCK_SPLIT":
+      return "IBKR_SPLIT";
     case "DIVIDEND_PAYMENT":
       return "IBKR_DIVIDEND";
     case "DIVIDEND_TAX":
@@ -625,10 +648,26 @@ export function preprocessIBKRData(data: CsvRowData[]): {
   const processedData: CsvRowData[] = [];
   let skippedCount = 0;
   const classifications = new Map<string, number>();
+  // A reverse split is posted as two rows (old and new ISIN) with the same
+  // description; the split must be applied once per symbol and date.
+  const seenSplits = new Set<string>();
 
   for (const row of data) {
     const ibkrRow = asIBKRRow(row);
     const classification = classifyIBKRTransaction(ibkrRow);
+
+    if (classification.classification === "STOCK_SPLIT") {
+      const symbol = (row.Symbol || extractSymbolFromDescription(row.Description || "") || "").toUpperCase();
+      const date = String(row.Date || row.ReportDate || row.TradeDate || "").slice(0, 10);
+      const ratio = parseSplitRatio(row.Description || "");
+      const key = `${symbol}|${date}|${ratio}`;
+      if (seenSplits.has(key)) {
+        classifications.set("STOCK_SPLIT", (classifications.get("STOCK_SPLIT") ?? 0) + 1);
+        skippedCount++;
+        continue;
+      }
+      seenSplits.add(key);
+    }
 
     // Track classification stats
     const classType = classification.classification;
@@ -649,6 +688,16 @@ export function preprocessIBKRData(data: CsvRowData[]): {
     // Normalize symbol to uppercase (IBKR sometimes provides mixed-case symbols like "BAKKAo")
     if (processedRow.Symbol && typeof processedRow.Symbol === "string") {
       processedRow.Symbol = processedRow.Symbol.toUpperCase();
+    }
+
+    // Splits carry the ratio in TradeMoney; Wealthfolio reads it from amount
+    if (classification.classification === "STOCK_SPLIT") {
+      if (!processedRow.Symbol) {
+        processedRow.Symbol = extractSymbolFromDescription(row.Description || "").toUpperCase();
+      }
+      processedRow.TradeMoney = String(parseSplitRatio(row.Description || ""));
+      processedRow.Quantity = "0";
+      processedRow.TradePrice = "0";
     }
 
     // For cash transactions (FEE, DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, INTEREST, FX), add cash symbol

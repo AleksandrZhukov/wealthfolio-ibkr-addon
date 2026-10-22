@@ -50,7 +50,18 @@ const YAHOO_FINANCE_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/cha
  * - Exact match: "SGLN" === "SGLN"
  * - Numeric equivalence: parseInt("0101") === parseInt("101") (handles HK stocks)
  */
+/**
+ * IBKR writes share classes with a space ("BRK B"); Yahoo uses a dash ("BRK-B").
+ */
+export function toYahooShareClass(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/\s+/g, "-");
+}
+
 function areSymbolsCompatible(resultSymbol: string, requestSymbol: string): boolean {
+  if (/\s/.test(requestSymbol.trim())) {
+    // Share class: "BRK B" matches BRK-B / BRK.B / BRK/B, but not BRKU or BRK
+    return resultSymbol.toUpperCase().replace(/[./]/g, "-") === toYahooShareClass(requestSymbol);
+  }
   const resultBase = resultSymbol.split('.')[0].toUpperCase();
   const requestBase = requestSymbol.toUpperCase();
 
@@ -583,7 +594,7 @@ function trySymbolWithExchangeSuffix(
   const resolvedSuffix = suffix ?? "";
 
   // Construct the ticker
-  const ticker = symbol.includes('.') ? symbol : `${symbol.toUpperCase()}${resolvedSuffix}`;
+  const ticker = symbol.includes('.') ? symbol : `${toYahooShareClass(symbol)}${resolvedSuffix}`;
   debug.log(`[Ticker Resolver] Symbol+exchange fallback: ${symbol} + ${exchange} → ${ticker}`);
 
   return {
@@ -599,7 +610,7 @@ function trySymbolWithExchangeSuffix(
  * This is used when ISIN search fails - user will need to manually resolve
  */
 function createFallbackTicker(symbol: string): TickerResolutionResult {
-  const processedSymbol = symbol.toUpperCase();
+  const processedSymbol = toYahooShareClass(symbol);
 
   return {
     yahooTicker: processedSymbol,

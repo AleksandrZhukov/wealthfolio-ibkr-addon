@@ -85,6 +85,17 @@ Add the following sections with their required fields:
 </details>
 
 <details>
+<summary><b>Corporate Actions</b> (Required for stock splits)</summary>
+
+**Required Fields:**
+- ClientAccountID, AccountAlias, CurrencyPrimary, AssetClass, Symbol, Description, ISIN
+- Date/Time, ReportDate, Type, Quantity, TransactionID
+
+Splits are read from the description ("SPLIT 10 FOR 1") and imported as `SPLIT` activities.
+
+</details>
+
+<details>
 <summary><b>Transfers</b> (Required)</summary>
 
 **Options:** Transfer

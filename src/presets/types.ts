@@ -83,6 +83,7 @@ export interface IBKRClassification {
   classification:
     | "STOCK_BUY"
     | "STOCK_SELL"
+    | "STOCK_SPLIT"
     | "DIVIDEND_PAYMENT"
     | "DIVIDEND_TAX"
     | "FEE"

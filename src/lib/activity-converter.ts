@@ -31,6 +31,7 @@ function mapActivityType(ibkrType: string): ActivityType | null {
   const mapping: Record<string, ActivityType> = {
     "IBKR_BUY": "BUY",
     "IBKR_SELL": "SELL",
+    "IBKR_SPLIT": "SPLIT",
     "IBKR_DIVIDEND": "DIVIDEND",
     "IBKR_TAX": "TAX",
     "IBKR_FEE": "FEE",
@@ -414,7 +415,10 @@ export async function convertToActivityImports(
       let fee = 0;
       let currency = determineTransactionCurrency(row, baseCurrency);
 
-      if (ibkrType === "IBKR_BUY" || ibkrType === "IBKR_SELL") {
+      if (ibkrType === "IBKR_SPLIT") {
+        // Split ratio (e.g. 10 for 10:1), set by the preprocessor
+        amount = parseNumeric(row.TradeMoney);
+      } else if (ibkrType === "IBKR_BUY" || ibkrType === "IBKR_SELL") {
         // For trades: calculate from quantity * unit_price
         amount = Math.abs(quantity * unitPrice);
         // Fee includes both commission (IBCommission) and any transaction taxes (Taxes field)
@@ -606,7 +610,7 @@ export async function convertToActivityImports(
 
       // For cash transactions (not trades), quantity should be the cash amount
       // and unitPrice should be 1
-      const isCashTransaction = ibkrType !== "IBKR_BUY" && ibkrType !== "IBKR_SELL";
+      const isCashTransaction = ibkrType !== "IBKR_BUY" && ibkrType !== "IBKR_SELL" && ibkrType !== "IBKR_SPLIT";
       const finalQuantity = isCashTransaction ? amount : quantity;
       const finalUnitPrice = isCashTransaction ? 1 : unitPrice;
 
