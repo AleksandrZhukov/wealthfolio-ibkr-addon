@@ -32,6 +32,15 @@ describe("stock splits from IBKR corporate actions", () => {
     expect(activities[0]).toMatchObject({ activityType: "SPLIT", symbol: "NFLX", amount: 10, quantity: 0, date: "2025-11-17" });
   });
 
+  it("takes the date from Date/Time when the Corporate Actions row has no Date", async () => {
+    const row = corporateAction("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)", { Date: "", TradeDate: "2025-11-14 202500" });
+    const { processedData } = preprocessIBKRData([row] as any);
+    const previews = [{ currency: "USD", name: "T - USD", existingAccount: { id: "a", name: "T - USD", currency: "USD" } }];
+    const { activities, errors } = await convertToActivityImports(processedData as any, previews as any);
+    expect(errors).toEqual([]);
+    expect(activities[0]).toMatchObject({ activityType: "SPLIT", amount: 10, date: "2025-11-14" });
+  });
+
   it("applies a reverse split posted as two rows only once", () => {
     const desc = "XYZ(US0000000000) SPLIT 1 FOR 20 (XYZ.OLD, XYZ CORP, US0000000000)";
     const { processedData } = preprocessIBKRData([

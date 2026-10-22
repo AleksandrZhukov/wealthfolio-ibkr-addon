@@ -615,7 +615,9 @@ export async function convertToActivityImports(
       const finalUnitPrice = isCashTransaction ? 1 : unitPrice;
 
       // Validate date - missing date should be an error, not silently defaulted
-      const activityDate = row.Date || row.ReportDate;
+      // Corporate Actions rows only carry Date/Time, which the parser maps to
+      // TradeDate ("2025-11-14 202500"); keep just the date part.
+      const activityDate = row.Date || row.ReportDate || row.TradeDate?.slice(0, 10);
       if (!activityDate) {
         errors.push({
           rowIndex,
