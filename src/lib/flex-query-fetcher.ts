@@ -162,6 +162,12 @@ export function createNetworkHttpClient(network: NetworkAPI): HttpClient {
   };
 }
 
+// SendRequest codes that mean "try again shortly": 1001 statement could not be
+// generated, 1018 too many requests.
+const SEND_RETRYABLE_CODES = new Set([1001, 1018]);
+const SEND_MAX_ATTEMPTS = 4;
+const SEND_RETRY_DELAY_MS = 10000;
+
 // Module-level HTTP client - set via setHttpClient()
 let httpClient: HttpClient | null = null;
 
@@ -431,6 +437,7 @@ export async function fetchFlexQuery(
     initialDelayMs?: number;
     maxDelayMs?: number;
     absoluteTimeoutMs?: number;
+    sendRetryDelayMs?: number;
     onProgress?: (message: string) => void;
   } = {}
 ): Promise<FlexQueryResult> {
@@ -439,6 +446,7 @@ export async function fetchFlexQuery(
     initialDelayMs = FLEX_QUERY_INITIAL_DELAY_MS,
     maxDelayMs = FLEX_QUERY_MAX_DELAY_MS,
     absoluteTimeoutMs = FLEX_QUERY_ABSOLUTE_TIMEOUT_MS,
+    sendRetryDelayMs = SEND_RETRY_DELAY_MS,
     onProgress,
   } = options;
 
@@ -446,7 +454,17 @@ export async function fetchFlexQuery(
 
   // Step 1: Send request
   onProgress?.("Sending Flex Query request...");
-  const requestResult = await sendFlexRequest(config);
+  let requestResult = await sendFlexRequest(config);
+  for (
+    let attempt = 1;
+    attempt < SEND_MAX_ATTEMPTS && requestResult.errorCode !== undefined && SEND_RETRYABLE_CODES.has(requestResult.errorCode);
+    attempt++
+  ) {
+    const wait = sendRetryDelayMs * attempt;
+    onProgress?.(`IBKR busy (${requestResult.errorCode}), retrying in ${Math.round(wait / 1000)}s...`);
+    await delay(wait);
+    requestResult = await sendFlexRequest(config);
+  }
 
   if (!requestResult.success || !requestResult.referenceCode) {
     return {

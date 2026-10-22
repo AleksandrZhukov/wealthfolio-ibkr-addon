@@ -221,7 +221,9 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         const flexConfig = { token: flexToken, queryId: flexQueryId };
         let csvs: string[];
         if (flexFromDate) {
-          const range = await fetchFlexQueryRange(flexConfig, new Date(flexFromDate), new Date(), onProgress);
+          // Activity statements are built end-of-day, so stop at yesterday.
+          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const range = await fetchFlexQueryRange(flexConfig, new Date(flexFromDate), yesterday, onProgress);
           if (!range.success) {
             throw new Error(range.error || "Failed to fetch data from IBKR");
           }

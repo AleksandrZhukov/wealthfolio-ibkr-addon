@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-10-22
+
+### Fixed
+- SendRequest retries IBKR's transient 1001 ("could not be generated at this time") and 1018 (rate limit) up to 4 times, waiting 10/20/30 seconds
+- "History from" ranges end yesterday, since activity statements are built end-of-day
+
 ## [1.2.0] - 2026-10-22
 
 ### Added
