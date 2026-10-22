@@ -622,17 +622,30 @@ export async function convertToActivityImports(
         continue;
       }
 
+      // IBKR withholding tax is negative; a positive row reverses an earlier
+      // charge. Amounts are made absolute above, so keep the direction by
+      // importing it as a non-external refund credit instead of as more tax.
+      const isTaxRefund = ibkrType === "IBKR_TAX" && parseNumeric(row.TradeMoney) > 0;
+
       const activity: ActivityImport = {
         accountId: "", // Will be set later when grouping by currency
         date: activityDate,
-        symbol: row._resolvedTicker || row.Symbol || row.SecurityID || `$CASH-${currency}`,
-        activityType: activityType,
+        symbol: isTaxRefund
+          ? `$CASH-${currency}`
+          : row._resolvedTicker || row.Symbol || row.SecurityID || `$CASH-${currency}`,
+        activityType: isTaxRefund ? "CREDIT" : activityType,
+        ...(isTaxRefund ? { subtype: "REFUND" } : {}),
         quantity: finalQuantity,
         unitPrice: finalUnitPrice,
         currency: currency,
         fee: fee,
         amount: amount,
-        comment: row.ActivityDescription || row.Description || "",
+        // The TransactionID keeps IBKR's repeated same-day postings (e.g. tax
+        // charge/reversal chains) distinct in the host's content-based import
+        // dedup, while a re-import of the same posting still matches.
+        comment: [row.ActivityDescription || row.Description || "", row.TransactionID ? `[IBKR ${row.TransactionID}]` : ""]
+          .filter(Boolean)
+          .join(" "),
         isDraft: false,
         isValid: true,
       };

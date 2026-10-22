@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-22
+
+### Fixed
+- Imports reported success but stored nothing: activities now go through `checkImport` (which resolves assets) before `import`, only valid rows are sent, and the result shows the host's real imported/failed counts and errors
+- Positive Withholding Tax rows (IBKR tax reversals) are imported as `CREDIT`/`REFUND` instead of as additional tax
+- Repeated same-day IBKR postings were collapsed by the host's content dedup; the IBKR TransactionID is now part of the activity comment, so each posting is kept and re-imports stay idempotent
+- New accounts are created with the `TRANSACTIONS` tracking mode
+
 ## [1.2.2] - 2026-10-22
 
 ### Fixed

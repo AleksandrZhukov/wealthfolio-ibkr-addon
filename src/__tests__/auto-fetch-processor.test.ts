@@ -112,7 +112,8 @@ describe("Auto-Fetch Processor", () => {
       });
 
       const mockActivitiesApi = {
-        import: vi.fn().mockResolvedValue(undefined),
+        checkImport: vi.fn(async (rows: unknown[]) => rows),
+        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
         getAll: vi.fn().mockResolvedValue([]),
       };
 
@@ -193,6 +194,7 @@ describe("Auto-Fetch Processor", () => {
       });
 
       const mockActivitiesApi = {
+        checkImport: vi.fn(async (rows: unknown[]) => rows),
         import: vi.fn().mockRejectedValue(new Error("Import failed")),
         getAll: vi.fn().mockResolvedValue([]),
       };
@@ -236,6 +238,7 @@ describe("Auto-Fetch Processor", () => {
       });
 
       const mockActivitiesApi = {
+        checkImport: vi.fn(async (rows: unknown[]) => rows),
         import: vi.fn(),
         getAll: vi.fn().mockResolvedValue([]),
       };
@@ -321,7 +324,8 @@ describe("Auto-Fetch Processor", () => {
       });
 
       const mockActivitiesApi = {
-        import: vi.fn().mockResolvedValue(undefined),
+        checkImport: vi.fn(async (rows: unknown[]) => rows),
+        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
         getAll: vi.fn().mockResolvedValue([]),
       };
 
@@ -504,7 +508,8 @@ describe("Auto-Fetch Processor", () => {
           error: vi.fn(),
         },
         activities: {
-          import: vi.fn().mockResolvedValue(undefined),
+          checkImport: vi.fn(async (rows: unknown[]) => rows),
+        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
           getAll: vi.fn().mockResolvedValue([]),
         },
         secrets: {

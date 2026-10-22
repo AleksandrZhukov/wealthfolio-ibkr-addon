@@ -5,6 +5,7 @@
  * Extracted from performAutoFetch to improve testability and reduce complexity.
  */
 
+import { importValidated } from "./validated-import";
 import type { Account, AddonContext, ActivityImport } from "@wealthfolio/addon-sdk";
 import type { CsvRowData } from "../presets/types";
 import { fetchFlexQuery } from "./flex-query-fetcher";
@@ -137,9 +138,15 @@ export async function importActivitiesToAccounts(
         totalSkipped += duplicatesSkipped;
 
         if (toImport.length > 0) {
-          await activitiesApi.import(toImport);
-          totalImported += toImport.length;
-          logger?.trace(`IBKR auto-fetch [${configName}]: Imported ${toImport.length} to ${account.name}`);
+          const outcome = await importValidated(activitiesApi, toImport);
+          totalImported += outcome.imported;
+          totalSkipped += outcome.duplicates;
+          if (outcome.failed > 0) {
+            totalFailed += outcome.failed;
+            failedAccounts.push(account.name);
+            logger?.warn(`IBKR auto-fetch [${configName}]: ${outcome.failed} rejected for ${account.name}: ${outcome.errors.slice(0, 3).join("; ")}`);
+          }
+          logger?.trace(`IBKR auto-fetch [${configName}]: Imported ${outcome.imported} to ${account.name}`);
         }
 
         if (duplicatesSkipped > 0) {

@@ -7,6 +7,7 @@ import { detectCurrenciesFromIBKR } from "../lib/currency-detector";
 import { generateAccountNames } from "../lib/account-name-generator";
 import { fetchFlexQuery, fetchFlexQueryRange, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
+import { importValidated } from "../lib/validated-import";
 import {
   refreshAndUpdateAccountPreviews,
   processAndResolveData,
@@ -483,6 +484,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
               currency: preview.currency,
               group: preview.group,
               accountType: "SECURITIES",
+              trackingMode: "TRANSACTIONS",
               isDefault: false,
               isActive: true,
             });
@@ -517,6 +519,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
               currency: currency,
               group: groupName,
               accountType: "SECURITIES",
+              trackingMode: "TRANSACTIONS",
               isDefault: false,
               isActive: true,
             });
@@ -579,8 +582,10 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
             if (transactionsWithAccountId.length > 0) {
               try {
-                await ctx.api.activities.import(transactionsWithAccountId);
-                groupTotalImported += transactionsWithAccountId.length;
+                const outcome = await importValidated(ctx.api.activities, transactionsWithAccountId);
+                groupTotalImported += outcome.imported;
+                groupTotalFailed += outcome.failed;
+                groupErrors.push(...outcome.errors);
               } catch (importError) {
                 groupTotalFailed += transactionsWithAccountId.length;
                 groupErrors.push(`Import failed for ${txnCurrency}: ${getErrorMessage(importError)}`);

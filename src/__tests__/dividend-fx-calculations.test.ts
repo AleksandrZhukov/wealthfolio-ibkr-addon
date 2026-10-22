@@ -298,7 +298,7 @@ describe('Dividend FX Calculations', () => {
       // Create tax row - 15% WHT on $25 dividend = $3.75
       const taxRow = createTaxRow(
         'AAPL',
-        3.00, // TradeMoney in GBP (converted from ~$3.75)
+        -3.00, // TradeMoney in GBP (converted from ~$3.75); IBKR posts tax as negative
         '2024-01-20',
         'AAPL(US0378331005) Cash Dividend USD 0.25 per Share - US Tax',
         'GBP'
@@ -323,7 +323,7 @@ describe('Dividend FX Calculations', () => {
       // Create tax row without prior position
       const taxRow = createTaxRow(
         'AAPL',
-        4.00, // TradeMoney in GBP
+        -4.00, // TradeMoney in GBP; IBKR posts tax as negative
         '2024-01-20',
         'AAPL Cash Dividend USD 0.50 per Share - US Tax',
         'GBP'
@@ -420,5 +420,19 @@ describe('Dividend FX Calculations', () => {
       // Position: 100 - 30 + 50 = 120; Dividend: 120 × 0.25 = 30
       expect(dividend!.amount).toBe(30);
     });
+  });
+});
+
+describe("Withholding tax reversals", () => {
+  it("imports a positive withholding tax row as a refund credit, not as tax", async () => {
+    const { convertToActivityImports } = await import("../lib/activity-converter");
+    const rows = [
+      createTaxRow("AAPL", -1.5, "2026-05-15", "AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE - US TAX", "USD"),
+      createTaxRow("AAPL", 1.5, "2026-05-20", "AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE - US TAX", "USD"),
+    ];
+    const previews = [{ currency: "USD", name: "T - USD", existingAccount: { id: "a", name: "T - USD", currency: "USD" } }];
+    const result = await convertToActivityImports(rows as any, previews as any);
+    const types = result.activities.map((a) => [a.activityType, a.subtype ?? null, a.symbol]);
+    expect(types).toEqual([["TAX", null, "AAPL"], ["CREDIT", "REFUND", "$CASH-USD"]]);
   });
 });

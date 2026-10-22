@@ -139,6 +139,7 @@ export function enable(ctx: AddonContext) {
             currency: expected.currency,
             group: accountGroup,
             accountType: 'SECURITIES',
+            trackingMode: 'TRANSACTIONS',
             isDefault: false,
             isActive: true,
           });
