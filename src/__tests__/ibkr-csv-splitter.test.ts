@@ -157,7 +157,7 @@ ${transfersSection}`;
 
       expect(result).toContain("AAPL");
       // Should only have header + 1 data row
-      const lines = result.split("\n").filter(l => l.trim());
+      const lines = result.split("\n").filter((l) => l.trim());
       expect(lines.length).toBe(2);
     });
 
@@ -206,7 +206,7 @@ ${tradesSection}`;
 ${dividendsSection}`;
 
       const result = extractTradesSection(fullCsv);
-      const lines = result.split("\n").filter(l => l.trim());
+      const lines = result.split("\n").filter((l) => l.trim());
 
       // 1 header + 3 trades + 2 dividends = 6 lines
       expect(lines.length).toBe(6);
@@ -313,7 +313,7 @@ ${dividendsSection}`;
 "U1234567","ExchTrade","NASDAQ","BUY","AAPL","2024-01-15","1500.00","Company, Inc., Ltd."`;
 
       const result = extractTradesSection(csv);
-      const lines = result.split("\n").filter(l => l.trim());
+      const lines = result.split("\n").filter((l) => l.trim());
 
       // Should have 2 lines: header and data
       expect(lines.length).toBe(2);
@@ -332,7 +332,7 @@ ${dividendsSection}`;
       }
 
       const result = extractTradesSection(csv);
-      const lines = result.split("\n").filter(l => l.trim());
+      const lines = result.split("\n").filter((l) => l.trim());
 
       expect(lines.length).toBe(1001); // 1 header + 1000 data rows
     });
@@ -352,7 +352,7 @@ ${dividendsSection}
 ${transfersSection}`;
 
       const result = extractTradesSection(fullCsv);
-      const lines = result.split("\n").filter(l => l.trim());
+      const lines = result.split("\n").filter((l) => l.trim());
 
       // 1 header + 1 trade + 1 dividend + 1 transfer = 4 lines
       expect(lines.length).toBe(4);

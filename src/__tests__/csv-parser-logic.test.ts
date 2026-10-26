@@ -14,9 +14,7 @@ function validateHeaders(headers: string[]): boolean {
   return headers.length >= 3 && !headers.some((header) => !header || header.trim() === "");
 }
 
-function validateFileInputs(
-  files: { name: string; size: number }[]
-): string | null {
+function validateFileInputs(files: { name: string; size: number }[]): string | null {
   if (files.length === 0) {
     return "No files selected";
   }
@@ -298,11 +296,7 @@ describe("CSV Parser Logic", () => {
 
   describe("Line number tracking", () => {
     it("should assign sequential line numbers", () => {
-      const rows = [
-        { data: "row1" },
-        { data: "row2" },
-        { data: "row3" },
-      ];
+      const rows = [{ data: "row1" }, { data: "row2" }, { data: "row3" }];
 
       const withLineNumbers = rows.map((row, index) => ({
         ...row,

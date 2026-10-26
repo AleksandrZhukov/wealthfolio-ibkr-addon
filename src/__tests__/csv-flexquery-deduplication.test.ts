@@ -43,12 +43,13 @@ function simulateDatabaseStorage(activity: ActivityImport): {
   const isTrade = activity.activityType === "BUY" || activity.activityType === "SELL";
 
   return {
-    activityDate: typeof activity.date === "string" ? activity.date : activity.date?.toISOString() || "",
+    activityDate:
+      typeof activity.date === "string" ? activity.date : activity.date?.toISOString() || "",
     assetId: activity.symbol,
     activityType: activity.activityType,
     // Backend stores quantity and unitPrice as 0 for cash transactions
-    quantity: isTrade ? (activity.quantity || 0) : 0,
-    unitPrice: isTrade ? (activity.unitPrice || 0) : 0,
+    quantity: isTrade ? activity.quantity || 0 : 0,
+    unitPrice: isTrade ? activity.unitPrice || 0 : 0,
     amount: activity.amount || 0,
     fee: activity.fee || 0,
     currency: activity.currency || "",
@@ -108,7 +109,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
         { currency: "NOK", name: "Test NOK", existingAccount: { id: "acc-nok" } },
       ];
 
-      const { activities: activities1 } = await convertToActivityImports(preprocessed1.processedData, accountPreviews as any);
+      const { activities: activities1 } = await convertToActivityImports(
+        preprocessed1.processedData,
+        accountPreviews as any,
+      );
 
       if (activities1.length === 0) {
         console.log("No activities parsed from CSV1, skipping test");
@@ -123,7 +127,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       // Second import of same CSV
       const parsed2 = parseFlexQueryCSV(csv1Content);
       const preprocessed2 = preprocessIBKRData(parsed2.rows);
-      const { activities: activities2 } = await convertToActivityImports(preprocessed2.processedData, accountPreviews as any);
+      const { activities: activities2 } = await convertToActivityImports(
+        preprocessed2.processedData,
+        accountPreviews as any,
+      );
 
       // Filter duplicates
       const { unique, duplicates } = filterDuplicateActivities(activities2, storedActivities);
@@ -158,12 +165,18 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       // First import: CSV1
       const parsed1 = parseFlexQueryCSV(csv1Content);
       const preprocessed1 = preprocessIBKRData(parsed1.rows);
-      const { activities: activities1 } = await convertToActivityImports(preprocessed1.processedData, accountPreviews as any);
+      const { activities: activities1 } = await convertToActivityImports(
+        preprocessed1.processedData,
+        accountPreviews as any,
+      );
 
       // Second import: CSV2
       const parsed2 = parseFlexQueryCSV(csv2Content);
       const preprocessed2 = preprocessIBKRData(parsed2.rows);
-      const { activities: activities2 } = await convertToActivityImports(preprocessed2.processedData, accountPreviews as any);
+      const { activities: activities2 } = await convertToActivityImports(
+        preprocessed2.processedData,
+        accountPreviews as any,
+      );
 
       // Combine both into "database"
       const allActivities = [...activities1, ...activities2];
@@ -177,7 +190,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       const activitiesReimport = [...activities1, ...activities2];
 
       // Filter duplicates
-      const { unique, duplicates } = filterDuplicateActivities(activitiesReimport, storedActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        activitiesReimport,
+        storedActivities,
+      );
 
       console.log(`Re-import duplicates detected: ${duplicates.length}`);
       console.log(`Re-import unique (should be 0): ${unique.length}`);
@@ -496,7 +512,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       // Step 1: Import CSV (simulating manual upload)
       const parsedCSV = parseFlexQueryCSV(csv1Content);
       const preprocessedCSV = preprocessIBKRData(parsedCSV.rows);
-      const { activities: csvActivities } = await convertToActivityImports(preprocessedCSV.processedData, accountPreviews as any);
+      const { activities: csvActivities } = await convertToActivityImports(
+        preprocessedCSV.processedData,
+        accountPreviews as any,
+      );
 
       // Store in "database"
       const storedActivities = csvActivities.map(simulateDatabaseStorage);
@@ -509,7 +528,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       const flexQueryActivities = csvActivities; // Same data
 
       // Filter duplicates
-      const { unique, duplicates } = filterDuplicateActivities(flexQueryActivities, storedActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        flexQueryActivities,
+        storedActivities,
+      );
 
       console.log(`Flex Query import: ${flexQueryActivities.length} activities`);
       console.log(`Duplicates detected: ${duplicates.length}`);
@@ -536,7 +558,10 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
       // Parse and convert
       const parsed = parseFlexQueryCSV(csv1Content);
       const preprocessed = preprocessIBKRData(parsed.rows);
-      const { activities } = await convertToActivityImports(preprocessed.processedData, accountPreviews as any);
+      const { activities } = await convertToActivityImports(
+        preprocessed.processedData,
+        accountPreviews as any,
+      );
 
       if (activities.length === 0) {
         console.log("No activities to analyze");
@@ -563,8 +588,12 @@ describe("CSV vs Flex Query Deduplication Integration", () => {
         const sample = typeActivities[0];
         const stored = simulateDatabaseStorage(sample);
 
-        console.log(`  Sample import: date=${sample.date}, symbol=${sample.symbol}, qty=${sample.quantity}, price=${sample.unitPrice}, amount=${sample.amount}`);
-        console.log(`  After storage: date=${stored.activityDate}, symbol=${stored.assetId}, qty=${stored.quantity}, price=${stored.unitPrice}, amount=${stored.amount}`);
+        console.log(
+          `  Sample import: date=${sample.date}, symbol=${sample.symbol}, qty=${sample.quantity}, price=${sample.unitPrice}, amount=${sample.amount}`,
+        );
+        console.log(
+          `  After storage: date=${stored.activityDate}, symbol=${stored.assetId}, qty=${stored.quantity}, price=${stored.unitPrice}, amount=${stored.amount}`,
+        );
 
         const importFp = createActivityFingerprint(sample);
         const storedFp = createExistingActivityFingerprint(stored);

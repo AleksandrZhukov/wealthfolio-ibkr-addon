@@ -78,7 +78,9 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   if (transactionType === "INTERNAL" && transferDirection && row.AssetClass === "CASH") {
     const amount = normalizeNumericValue(row.TradeMoney);
 
-    debug.log(`[IBKR Classifier] Found INTERNAL transfer: Direction="${transferDirection}", TradeMoney="${row.TradeMoney}", parsed amount=${amount}`);
+    debug.log(
+      `[IBKR Classifier] Found INTERNAL transfer: Direction="${transferDirection}", TradeMoney="${row.TradeMoney}", parsed amount=${amount}`,
+    );
 
     if (transferDirection === "IN" && amount !== undefined && amount !== 0) {
       debug.log(`[IBKR Classifier] Classified as TRANSFER_IN`);
@@ -129,7 +131,14 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   }
 
   // Skip empty rows (no LevelOfDetail and no transaction identifiers)
-  if (!levelOfDetail && !activityCode && !transactionType && !exchange && !notesCodes && !description) {
+  if (
+    !levelOfDetail &&
+    !activityCode &&
+    !transactionType &&
+    !exchange &&
+    !notesCodes &&
+    !description
+  ) {
     return {
       classification: "EMPTY_ROW",
       shouldImport: false,
@@ -289,9 +298,7 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   if (isDividendByDescription || isDividendByActivityCode) {
     // First check for FEE indicators - some dividend-related rows are actually fees
     // e.g., "BTI(US1104481072) CASH DIVIDEND USD 0.802221 PER SHARE - FEE"
-    const isFeeRow =
-      notesCodes === "Other Fees" ||
-      description.includes("- FEE");
+    const isFeeRow = notesCodes === "Other Fees" || description.includes("- FEE");
 
     if (isFeeRow) {
       return {
@@ -308,8 +315,7 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
     // IE, DK, SE, NO, FI, AU, NZ, CA, JP, HK, SG, KR, CN, BR, MX, ZA, IN, TW, FO, etc.
     const taxCountryPattern = /- [A-Z]{2} TAX/i;
     const isWithholdingTax =
-      principalAdjustFactor === "Withholding Tax" ||
-      taxCountryPattern.test(description);
+      principalAdjustFactor === "Withholding Tax" || taxCountryPattern.test(description);
 
     if (isWithholdingTax) {
       // Rule 4: Dividend withholding tax
@@ -370,7 +376,9 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
     // After CSV parsing, TradeMoney contains the amount
     const amount = normalizeNumericValue(row.TradeMoney);
 
-    debug.log(`[IBKR Classifier] Found Deposits/Withdrawals: TradeMoney="${row.TradeMoney}", parsed amount=${amount}`);
+    debug.log(
+      `[IBKR Classifier] Found Deposits/Withdrawals: TradeMoney="${row.TradeMoney}", parsed amount=${amount}`,
+    );
 
     if (amount !== undefined) {
       if (amount > 0) {
@@ -454,7 +462,11 @@ function classifyIBKRTransaction(row: IBKRTransactionRow): IBKRClassification {
   //
   // Note: We identify Section 2 rows by having ActivityCode but NOT TransactionType="ExchTrade"
   // (Section 1 trades have TransactionType="ExchTrade", Section 2 has ActivityCode only)
-  if (activityCode === "DEP" && notesCodes !== "Deposits/Withdrawals" && transactionType !== "ExchTrade") {
+  if (
+    activityCode === "DEP" &&
+    notesCodes !== "Deposits/Withdrawals" &&
+    transactionType !== "ExchTrade"
+  ) {
     return {
       classification: "SECTION2_DUPLICATE",
       shouldImport: false,
@@ -657,7 +669,11 @@ export function preprocessIBKRData(data: CsvRowData[]): {
     const classification = classifyIBKRTransaction(ibkrRow);
 
     if (classification.classification === "STOCK_SPLIT") {
-      const symbol = (row.Symbol || extractSymbolFromDescription(row.Description || "") || "").toUpperCase();
+      const symbol = (
+        row.Symbol ||
+        extractSymbolFromDescription(row.Description || "") ||
+        ""
+      ).toUpperCase();
       const date = String(row.Date || row.ReportDate || row.TradeDate || "").slice(0, 10);
       const ratio = parseSplitRatio(row.Description || "");
       const key = `${symbol}|${date}|${ratio}`;
@@ -702,9 +718,18 @@ export function preprocessIBKRData(data: CsvRowData[]): {
 
     // For cash transactions (FEE, DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, INTEREST, FX), add cash symbol
     if (
-      ["FEE", "DEPOSIT", "WITHDRAWAL", "TRANSFER_IN", "TRANSFER_OUT", "INTEREST", "DIVIDEND_PAYMENT", "DIVIDEND_TAX", "FX_DEPOSIT", "FX_WITHDRAWAL"].includes(
-        classification.classification,
-      )
+      [
+        "FEE",
+        "DEPOSIT",
+        "WITHDRAWAL",
+        "TRANSFER_IN",
+        "TRANSFER_OUT",
+        "INTEREST",
+        "DIVIDEND_PAYMENT",
+        "DIVIDEND_TAX",
+        "FX_DEPOSIT",
+        "FX_WITHDRAWAL",
+      ].includes(classification.classification)
     ) {
       // For dividends/taxes, use special extraction logic due to shifted columns
       if (["DIVIDEND_PAYMENT", "DIVIDEND_TAX"].includes(classification.classification)) {
@@ -853,7 +878,10 @@ export function preprocessIBKRData(data: CsvRowData[]): {
             Description: transferRef,
             // For SELL (FX_DEPOSIT to target): source side is TRANSFER_OUT (we're giving source currency)
             // For BUY (FX_WITHDRAWAL from target): source side is TRANSFER_IN (we're receiving source currency)
-            _IBKR_TYPE: classification.classification === "FX_DEPOSIT" ? "IBKR_TRANSFER_OUT" : "IBKR_TRANSFER_IN",
+            _IBKR_TYPE:
+              classification.classification === "FX_DEPOSIT"
+                ? "IBKR_TRANSFER_OUT"
+                : "IBKR_TRANSFER_IN",
           };
           rowsToAdd.push(sourceRow);
 
@@ -867,7 +895,10 @@ export function preprocessIBKRData(data: CsvRowData[]): {
           processedRow.Description = transferRef;
           // For SELL (FX_DEPOSIT): target side is TRANSFER_IN (we're receiving target currency)
           // For BUY (FX_WITHDRAWAL): target side is TRANSFER_OUT (we're giving target currency)
-          processedRow._IBKR_TYPE = classification.classification === "FX_DEPOSIT" ? "IBKR_TRANSFER_IN" : "IBKR_TRANSFER_OUT";
+          processedRow._IBKR_TYPE =
+            classification.classification === "FX_DEPOSIT"
+              ? "IBKR_TRANSFER_IN"
+              : "IBKR_TRANSFER_OUT";
         }
 
         // Add all rows atomically after successful preparation
@@ -948,4 +979,3 @@ export function preprocessIBKRData(data: CsvRowData[]): {
     classifications,
   };
 }
-

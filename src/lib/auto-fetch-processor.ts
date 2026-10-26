@@ -66,7 +66,7 @@ export interface ProcessConfigDeps {
   getOrCreateAccountsForGroup: (
     accountGroup: string,
     currencies: string[],
-    ibkr?: { ibkrAccount: string; label: string }
+    ibkr?: { ibkrAccount: string; label: string },
   ) => Promise<Map<string, Account>>;
 }
 
@@ -77,11 +77,11 @@ export async function fetchAndParseFlexQuery(
   token: string,
   queryId: string,
   configName: string,
-  logger?: AddonContext["api"]["logger"]
+  logger?: AddonContext["api"]["logger"],
 ): Promise<{ success: true; rows: CsvRowData[] } | { success: false; error: string }> {
   const result = await fetchFlexQuery(
     { token, queryId },
-    { onProgress: (msg) => logger?.trace(`IBKR auto-fetch [${configName}]: ${msg}`) }
+    { onProgress: (msg) => logger?.trace(`IBKR auto-fetch [${configName}]: ${msg}`) },
   );
 
   if (!result.success || !result.csv) {
@@ -105,7 +105,7 @@ export async function importActivitiesToAccounts(
   accountsByCurrency: Map<string, Account>,
   activitiesApi: AddonContext["api"]["activities"],
   configName: string,
-  logger?: AddonContext["api"]["logger"]
+  logger?: AddonContext["api"]["logger"],
 ): Promise<{ imported: number; skipped: number; failed: number; failedAccounts: string[] }> {
   let totalImported = 0;
   let totalSkipped = 0;
@@ -134,7 +134,7 @@ export async function importActivitiesToAccounts(
         const { toImport, duplicatesSkipped } = await deduplicateActivities(
           activitiesWithAccountId,
           account.id,
-          getExistingFingerprints
+          getExistingFingerprints,
         );
 
         totalSkipped += duplicatesSkipped;
@@ -146,19 +146,27 @@ export async function importActivitiesToAccounts(
           if (outcome.failed > 0) {
             totalFailed += outcome.failed;
             failedAccounts.push(account.name);
-            logger?.warn(`IBKR auto-fetch [${configName}]: ${outcome.failed} rejected for ${account.name}: ${outcome.errors.slice(0, 3).join("; ")}`);
+            logger?.warn(
+              `IBKR auto-fetch [${configName}]: ${outcome.failed} rejected for ${account.name}: ${outcome.errors.slice(0, 3).join("; ")}`,
+            );
           }
-          logger?.trace(`IBKR auto-fetch [${configName}]: Imported ${outcome.imported} to ${account.name}`);
+          logger?.trace(
+            `IBKR auto-fetch [${configName}]: Imported ${outcome.imported} to ${account.name}`,
+          );
         }
 
         if (duplicatesSkipped > 0) {
-          logger?.trace(`IBKR auto-fetch [${configName}]: Skipped ${duplicatesSkipped} duplicates for ${account.name}`);
+          logger?.trace(
+            `IBKR auto-fetch [${configName}]: Skipped ${duplicatesSkipped} duplicates for ${account.name}`,
+          );
         }
       } catch (importError) {
         const failedCount = activitiesWithAccountId.length;
         totalFailed += failedCount;
         failedAccounts.push(account.name);
-        logger?.warn(`IBKR auto-fetch [${configName}]: Import error for ${account.name} (${failedCount} activities): ${importError}`);
+        logger?.warn(
+          `IBKR auto-fetch [${configName}]: Import error for ${account.name} (${failedCount} activities): ${importError}`,
+        );
       }
     }
   }
@@ -172,7 +180,7 @@ export async function importActivitiesToAccounts(
  */
 export async function processFlexQueryConfig(
   config: FlexQueryConfig,
-  deps: ProcessConfigDeps
+  deps: ProcessConfigDeps,
 ): Promise<ConfigProcessResult> {
   const { ctx, token, getOrCreateAccountsForGroup } = deps;
   const toastId = `ibkr-fetch-${config.id}`;
@@ -187,7 +195,7 @@ export async function processFlexQueryConfig(
       token,
       config.queryId,
       config.name,
-      ctx.api.logger
+      ctx.api.logger,
     );
 
     if (!fetchResult.success) {
@@ -219,7 +227,9 @@ export async function processFlexQueryConfig(
       const accountsByCurrency = await getOrCreateAccountsForGroup(
         config.accountGroup,
         currencies,
-        partition.ibkrAccount ? { ibkrAccount: partition.ibkrAccount, label: partition.label } : undefined
+        partition.ibkrAccount
+          ? { ibkrAccount: partition.ibkrAccount, label: partition.label }
+          : undefined,
       );
 
       // Build account previews for processAndResolveData
@@ -235,13 +245,18 @@ export async function processFlexQueryConfig(
       const processResult = await processAndResolveData(
         partition.rows,
         accountPreviews,
-        ctx.api.market?.searchTicker
+        ctx.api.market?.searchTicker,
       );
 
       // Log conversion errors if any
       if (processResult.conversionErrors.length > 0) {
-        const errorSummary = processResult.conversionErrors.slice(0, 5).map((e) => e.message).join("; ");
-        ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: ${processResult.conversionErrors.length} conversion error(s): ${errorSummary}`);
+        const errorSummary = processResult.conversionErrors
+          .slice(0, 5)
+          .map((e) => e.message)
+          .join("; ");
+        ctx.api.logger?.warn(
+          `IBKR auto-fetch [${config.name}]: ${processResult.conversionErrors.length} conversion error(s): ${errorSummary}`,
+        );
       }
 
       // Import activities with deduplication
@@ -251,7 +266,7 @@ export async function processFlexQueryConfig(
         accountsByCurrency,
         ctx.api.activities,
         config.name,
-        ctx.api.logger
+        ctx.api.logger,
       );
       importResult.imported += partitionResult.imported;
       importResult.skipped += partitionResult.skipped;
@@ -269,13 +284,15 @@ export async function processFlexQueryConfig(
     const resultMessage = formatImportResultMessage(
       importResult.imported,
       importResult.skipped,
-      importResult.failed
+      importResult.failed,
     );
     ctx.api.logger?.info(`IBKR auto-fetch [${config.name}]: Complete - ${resultMessage}`);
 
     // Log failed accounts if any
     if (importResult.failedAccounts.length > 0) {
-      ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: Failed accounts: ${importResult.failedAccounts.join(", ")}`);
+      ctx.api.logger?.warn(
+        `IBKR auto-fetch [${config.name}]: Failed accounts: ${importResult.failedAccounts.join(", ")}`,
+      );
     }
 
     // Show success or warning toast based on results
@@ -302,7 +319,9 @@ export async function processFlexQueryConfig(
     const errorStatus = createErrorStatus(error);
     // Enrich the error message with actionable guidance for known IBKR errors
     const userFriendlyError = enrichIBKRErrorMessage(errorStatus.lastFetchError || "Unknown error");
-    ctx.api.logger?.error(`IBKR auto-fetch [${config.name}]: Error - ${errorStatus.lastFetchError}`);
+    ctx.api.logger?.error(
+      `IBKR auto-fetch [${config.name}]: Error - ${errorStatus.lastFetchError}`,
+    );
 
     // Show error toast with enriched message
     toast?.error(`IBKR: ${config.name} failed`, {

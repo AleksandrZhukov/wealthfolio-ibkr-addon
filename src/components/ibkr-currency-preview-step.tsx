@@ -20,17 +20,13 @@ export const IBKRCurrencyPreviewStep = ({
 }: IBKRCurrencyPreviewStepProps) => {
   // Check for validation issues
   const accountNames = accountPreviews.map((a) => a.name.trim());
-  const hasDuplicates = accountNames.some(
-    (name, index) => accountNames.indexOf(name) !== index
-  );
+  const hasDuplicates = accountNames.some((name, index) => accountNames.indexOf(name) !== index);
 
   const hasEmptyNames = accountPreviews.some((a) => a.name.trim().length === 0);
 
   // Check for currency mismatches (existing account with different currency)
   const currencyMismatches = accountPreviews.filter(
-    (preview) =>
-      preview.existingAccount &&
-      preview.existingAccount.currency !== preview.currency
+    (preview) => preview.existingAccount && preview.existingAccount.currency !== preview.currency,
   );
 
   const hasErrors = hasDuplicates || hasEmptyNames || currencyMismatches.length > 0;
@@ -43,8 +39,8 @@ export const IBKRCurrencyPreviewStep = ({
       <div>
         <h2 className="mb-2 text-lg font-semibold">Currency Accounts Preview</h2>
         <p className="text-muted-foreground text-sm">
-          {accountPreviews.length} account{accountPreviews.length === 1 ? "" : "s"} (one per
-          IBKR account and currency). Review and adjust account names if needed.
+          {accountPreviews.length} account{accountPreviews.length === 1 ? "" : "s"} (one per IBKR
+          account and currency). Review and adjust account names if needed.
         </p>
       </div>
 
@@ -67,11 +63,11 @@ export const IBKRCurrencyPreviewStep = ({
             </thead>
             <tbody>
               {accountPreviews.map((preview, index) => {
-                const isDuplicate = accountNames.filter((name) => name === preview.name.trim()).length > 1;
+                const isDuplicate =
+                  accountNames.filter((name) => name === preview.name.trim()).length > 1;
                 const isEmpty = preview.name.trim().length === 0;
                 const hasMismatch =
-                  preview.existingAccount &&
-                  preview.existingAccount.currency !== preview.currency;
+                  preview.existingAccount && preview.existingAccount.currency !== preview.currency;
 
                 return (
                   <tr key={preview.currency} className="border-b last:border-0">
@@ -136,12 +132,8 @@ export const IBKRCurrencyPreviewStep = ({
           <div className="text-sm">
             <p className="font-medium">What happens next:</p>
             <ul className="text-muted-foreground mt-1 space-y-1 text-xs">
-              <li>
-                • Existing accounts will be reused (transactions will be added to them)
-              </li>
-              <li>
-                • New accounts will be created for currencies without matching accounts
-              </li>
+              <li>• Existing accounts will be reused (transactions will be added to them)</li>
+              <li>• New accounts will be created for currencies without matching accounts</li>
               <li>• All accounts will be part of the same account group</li>
             </ul>
           </div>
@@ -163,8 +155,9 @@ export const IBKRCurrencyPreviewStep = ({
 
       {currencyMismatches.length > 0 && (
         <ImportAlert variant="error" title="Currency Mismatch">
-          {currencyMismatches.length} existing account{currencyMismatches.length > 1 ? "s have" : " has"}{" "}
-          a different currency. Please rename to avoid conflicts.
+          {currencyMismatches.length} existing account
+          {currencyMismatches.length > 1 ? "s have" : " has"} a different currency. Please rename to
+          avoid conflicts.
         </ImportAlert>
       )}
 

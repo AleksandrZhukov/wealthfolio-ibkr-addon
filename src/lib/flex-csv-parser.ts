@@ -92,7 +92,6 @@ export function parseFlexQueryCSV(csvContent: string): ParsedFlexQuery {
     if (rows.length === 0) {
       errors.push("No data rows found in CSV.");
     }
-
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     errors.push(`Error parsing Flex Query CSV: ${msg}`);

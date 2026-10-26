@@ -107,9 +107,7 @@ export const IBKRImportResultsStep = ({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold">
-                      {result.success + result.failed}
-                    </p>
+                    <p className="text-lg font-semibold">{result.success + result.failed}</p>
                     <p className="text-muted-foreground text-xs">total</p>
                   </div>
                 </div>

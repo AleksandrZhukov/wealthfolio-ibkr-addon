@@ -52,7 +52,7 @@ export interface SplitFXConversionsResult {
  */
 export function splitFXConversions(
   transactions: ActivityImport[],
-  accountsByCurrency: Map<string, Account>
+  accountsByCurrency: Map<string, Account>,
 ): SplitFXConversionsResult {
   // Validate inputs - return empty result for null/undefined
   if (!transactions || !Array.isArray(transactions)) {
@@ -105,22 +105,14 @@ export function splitFXConversions(
       continue;
     }
 
-    const {
-      sourceCurrency,
-      targetCurrency,
-      sourceAmount,
-      targetAmount,
-      comment,
-    } = fxDetails;
+    const { sourceCurrency, targetCurrency, sourceAmount, targetAmount, comment } = fxDetails;
 
     // Check if both accounts exist
     const sourceAccount = accountsByCurrency.get(sourceCurrency);
     const targetAccount = accountsByCurrency.get(targetCurrency);
 
     if (!sourceAccount) {
-      debug.warn(
-        `Skipping FX conversion: ${sourceCurrency} account not found`
-      );
+      debug.warn(`Skipping FX conversion: ${sourceCurrency} account not found`);
       skippedConversions.push({
         symbol: transaction.symbol || "unknown",
         reason: `Source account for ${sourceCurrency} not found - cannot create withdrawal`,
@@ -133,9 +125,7 @@ export function splitFXConversions(
     }
 
     if (!targetAccount) {
-      debug.warn(
-        `Skipping FX conversion: ${targetCurrency} account not found`
-      );
+      debug.warn(`Skipping FX conversion: ${targetCurrency} account not found`);
       skippedConversions.push({
         symbol: transaction.symbol || "unknown",
         reason: `Target account for ${targetCurrency} not found - cannot create deposit`,
@@ -184,7 +174,7 @@ export function splitFXConversions(
 
   if (fxConversionCount > 0) {
     debug.log(
-      `Processed ${fxConversionCount} FX conversions, created ${successfulSplits * 2} transactions, skipped ${skippedConversions.length}`
+      `Processed ${fxConversionCount} FX conversions, created ${successfulSplits * 2} transactions, skipped ${skippedConversions.length}`,
     );
   }
 
@@ -208,8 +198,7 @@ function isFXConversion(transaction: ActivityImport): boolean {
   // Also check for FOREX exchange or IDEALFX in the comment
   const comment = transaction.comment?.toLowerCase() || "";
   const isForexExchange =
-    symbol.includes(".") &&
-    (comment.includes("forex trade") || comment.includes("idealfx"));
+    symbol.includes(".") && (comment.includes("forex trade") || comment.includes("idealfx"));
 
   return fxPattern.test(symbol) || isForexExchange;
 }
@@ -239,7 +228,9 @@ function parseFXTransaction(transaction: ActivityImport): {
   // Validate currency codes are exactly 3 uppercase letters
   const currencyPattern = /^[A-Z]{3}$/;
   if (!currencyPattern.test(sourceCurrency) || !currencyPattern.test(targetCurrency)) {
-    debug.warn(`Invalid currency codes in FX symbol: ${symbol} (source: ${sourceCurrency}, target: ${targetCurrency})`);
+    debug.warn(
+      `Invalid currency codes in FX symbol: ${symbol} (source: ${sourceCurrency}, target: ${targetCurrency})`,
+    );
     return null;
   }
 
@@ -263,7 +254,9 @@ function parseFXTransaction(transaction: ActivityImport): {
 
   const comment = transaction.comment || `FX: ${sourceCurrency} → ${targetCurrency}`;
 
-  debug.log(`FX Conversion: ${sourceAmount} ${sourceCurrency} → ${targetAmount.toFixed(2)} ${targetCurrency} (rate: ${transaction.unitPrice})`);
+  debug.log(
+    `FX Conversion: ${sourceAmount} ${sourceCurrency} → ${targetAmount.toFixed(2)} ${targetCurrency} (rate: ${transaction.unitPrice})`,
+  );
 
   return {
     sourceCurrency,
@@ -273,4 +266,3 @@ function parseFXTransaction(transaction: ActivityImport): {
     comment,
   };
 }
-

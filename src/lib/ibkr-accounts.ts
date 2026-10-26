@@ -42,11 +42,13 @@ export function accountNamePrefix(groupName: string, label?: string): string {
  */
 export function findIbkrAccount(
   accounts: Account[],
-  target: { ibkrAccount?: string; name: string; currency: string }
+  target: { ibkrAccount?: string; name: string; currency: string },
 ): Account | undefined {
   return (
     (target.ibkrAccount
-      ? accounts.find((a) => a.currency === target.currency && a.accountNumber === target.ibkrAccount)
+      ? accounts.find(
+          (a) => a.currency === target.currency && a.accountNumber === target.ibkrAccount,
+        )
       : undefined) ?? accounts.find((a) => a.name === target.name && a.currency === target.currency)
   );
 }

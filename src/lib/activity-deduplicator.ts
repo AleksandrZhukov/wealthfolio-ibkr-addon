@@ -98,11 +98,7 @@ function createFingerprintFromNormalized(fields: NormalizedActivityFields): stri
   const isTrade = TRADE_ACTIVITY_TYPES.has(activityType);
   const isDividend = DIVIDEND_ACTIVITY_TYPES.has(activityType);
 
-  const parts = [
-    normalizeDate(fields.date),
-    normalizeString(fields.symbol),
-    activityType,
-  ];
+  const parts = [normalizeDate(fields.date), normalizeString(fields.symbol), activityType];
 
   if (isTrade) {
     // For trades: use quantity and unitPrice (reliably stored)
@@ -217,18 +213,20 @@ export function filterDuplicateActivities(
     fee: number | string | null;
     currency: string;
     comment?: string;
-  }>
+  }>,
 ): { unique: ActivityImport[]; duplicates: ActivityImport[] } {
   // Activities tagged with an IBKR TransactionID are matched by that id;
   // content fingerprints cover activities imported without one.
   const existingTxids = new Set<string>();
   const existingFingerprints = new Set<string>();
   // For debugging: store both fingerprint and original activity for comparison
-  type DebugEntry = { activity: typeof existingActivities[0]; fingerprint: string };
+  type DebugEntry = { activity: (typeof existingActivities)[0]; fingerprint: string };
   const existingByDateSymbol = new Map<string, DebugEntry[]>();
 
   // Debug: Log summary of existing activities
-  debug.log(`[Dedup] Comparing ${newActivities.length} new activities against ${existingActivities.length} existing activities`);
+  debug.log(
+    `[Dedup] Comparing ${newActivities.length} new activities against ${existingActivities.length} existing activities`,
+  );
   if (existingActivities.length > 0) {
     const sample = existingActivities[0];
     debug.log(`[Dedup] Sample existing activity raw fields:`);
@@ -307,14 +305,30 @@ export function filterDuplicateActivities(
         if (existingMatches && existingMatches.length > 0) {
           const existing = existingMatches[0].activity;
           debug.log(`[Dedup Debug] Activity NOT matched despite same date+symbol:`);
-          debug.log(`  Date: new="${normalizeDate(activity.date)}" vs existing="${normalizeDate(existing.activityDate)}"`);
-          debug.log(`  Symbol: new="${normalizeString(activity.symbol)}" vs existing="${normalizeString(existing.assetId)}"`);
-          debug.log(`  Type: new="${normalizeString(activity.activityType)}" vs existing="${normalizeString(existing.activityType)}"`);
-          debug.log(`  Qty: new="${normalizeNumber(activity.quantity)}" vs existing="${normalizeNumber(existing.quantity)}"`);
-          debug.log(`  UnitPrice: new="${normalizeNumber(activity.unitPrice)}" vs existing="${normalizeNumber(existing.unitPrice)}"`);
-          debug.log(`  Amount: new="${normalizeNumber(activity.amount)}" vs existing="${normalizeNumber(existing.amount)}"`);
-          debug.log(`  Fee: new="${normalizeNumber(activity.fee)}" vs existing="${normalizeNumber(existing.fee)}"`);
-          debug.log(`  Currency: new="${normalizeString(activity.currency)}" vs existing="${normalizeString(existing.currency)}"`);
+          debug.log(
+            `  Date: new="${normalizeDate(activity.date)}" vs existing="${normalizeDate(existing.activityDate)}"`,
+          );
+          debug.log(
+            `  Symbol: new="${normalizeString(activity.symbol)}" vs existing="${normalizeString(existing.assetId)}"`,
+          );
+          debug.log(
+            `  Type: new="${normalizeString(activity.activityType)}" vs existing="${normalizeString(existing.activityType)}"`,
+          );
+          debug.log(
+            `  Qty: new="${normalizeNumber(activity.quantity)}" vs existing="${normalizeNumber(existing.quantity)}"`,
+          );
+          debug.log(
+            `  UnitPrice: new="${normalizeNumber(activity.unitPrice)}" vs existing="${normalizeNumber(existing.unitPrice)}"`,
+          );
+          debug.log(
+            `  Amount: new="${normalizeNumber(activity.amount)}" vs existing="${normalizeNumber(existing.amount)}"`,
+          );
+          debug.log(
+            `  Fee: new="${normalizeNumber(activity.fee)}" vs existing="${normalizeNumber(existing.fee)}"`,
+          );
+          debug.log(
+            `  Currency: new="${normalizeString(activity.currency)}" vs existing="${normalizeString(existing.currency)}"`,
+          );
           debugLogCount++;
         }
       }
@@ -342,17 +356,19 @@ export function filterDuplicateActivities(
 export async function deduplicateActivities(
   newActivities: ActivityImport[],
   accountId: string,
-  getExistingActivities: (accountId: string) => Promise<Array<{
-    activityDate: string;
-    assetId: string;
-    activityType: string;
-    quantity: number | string | null;
-    unitPrice: number | string | null;
-    amount?: number | string | null;
-    fee: number | string | null;
-    currency: string;
-    comment?: string;
-  }>>
+  getExistingActivities: (accountId: string) => Promise<
+    Array<{
+      activityDate: string;
+      assetId: string;
+      activityType: string;
+      quantity: number | string | null;
+      unitPrice: number | string | null;
+      amount?: number | string | null;
+      fee: number | string | null;
+      currency: string;
+      comment?: string;
+    }>
+  >,
 ): Promise<{ toImport: ActivityImport[]; duplicatesSkipped: number }> {
   if (newActivities.length === 0) {
     return { toImport: [], duplicatesSkipped: 0 };
@@ -365,7 +381,9 @@ export async function deduplicateActivities(
   const { unique, duplicates } = filterDuplicateActivities(newActivities, existingActivities);
 
   if (duplicates.length > 0) {
-    debug.log(`[Deduplication] Skipping ${duplicates.length} duplicate activities for account ${accountId}`);
+    debug.log(
+      `[Deduplication] Skipping ${duplicates.length} duplicate activities for account ${accountId}`,
+    );
   }
 
   return {

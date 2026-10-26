@@ -116,10 +116,7 @@ describe("Flex Config Storage", () => {
 
       await saveConfigs(secrets, configs);
 
-      expect(secrets.set).toHaveBeenCalledWith(
-        SECRET_FLEX_CONFIGS,
-        JSON.stringify(configs)
-      );
+      expect(secrets.set).toHaveBeenCalledWith(SECRET_FLEX_CONFIGS, JSON.stringify(configs));
     });
 
     it("should save empty array", async () => {
@@ -168,9 +165,7 @@ describe("Flex Config Storage", () => {
       });
 
       // Check that saved configs include both
-      const savedCall = secrets.set.mock.calls.find(
-        (call) => call[0] === SECRET_FLEX_CONFIGS
-      );
+      const savedCall = secrets.set.mock.calls.find((call) => call[0] === SECRET_FLEX_CONFIGS);
       const savedConfigs = JSON.parse(savedCall![1]);
       expect(savedConfigs).toHaveLength(2);
       expect(savedConfigs[0].id).toBe("existing-1");
@@ -214,8 +209,20 @@ describe("Flex Config Storage", () => {
 
     it("should preserve other configs when updating", async () => {
       const configs: FlexQueryConfig[] = [
-        { id: "config-1", name: "First", queryId: "111", accountGroup: "A", autoFetchEnabled: false },
-        { id: "config-2", name: "Second", queryId: "222", accountGroup: "B", autoFetchEnabled: false },
+        {
+          id: "config-1",
+          name: "First",
+          queryId: "111",
+          accountGroup: "A",
+          autoFetchEnabled: false,
+        },
+        {
+          id: "config-2",
+          name: "Second",
+          queryId: "222",
+          accountGroup: "B",
+          autoFetchEnabled: false,
+        },
       ];
       const secrets = createMockSecretsAPI({
         [SECRET_FLEX_CONFIGS]: JSON.stringify(configs),
@@ -264,8 +271,20 @@ describe("Flex Config Storage", () => {
 
     it("should preserve other configs when deleting", async () => {
       const configs: FlexQueryConfig[] = [
-        { id: "config-1", name: "First", queryId: "111", accountGroup: "A", autoFetchEnabled: false },
-        { id: "config-2", name: "Second", queryId: "222", accountGroup: "B", autoFetchEnabled: false },
+        {
+          id: "config-1",
+          name: "First",
+          queryId: "111",
+          accountGroup: "A",
+          autoFetchEnabled: false,
+        },
+        {
+          id: "config-2",
+          name: "Second",
+          queryId: "222",
+          accountGroup: "B",
+          autoFetchEnabled: false,
+        },
       ];
       const secrets = createMockSecretsAPI({
         [SECRET_FLEX_CONFIGS]: JSON.stringify(configs),

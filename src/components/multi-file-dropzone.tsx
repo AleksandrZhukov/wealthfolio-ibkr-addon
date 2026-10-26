@@ -37,7 +37,7 @@ export const MultiFileDropzone = ({
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const newFiles = Array.from(e.dataTransfer.files).filter((file) =>
-        file.name.endsWith(".csv")
+        file.name.endsWith(".csv"),
       );
       onFilesChange([...files, ...newFiles]);
     }
@@ -45,9 +45,7 @@ export const MultiFileDropzone = ({
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files).filter((file) =>
-        file.name.endsWith(".csv")
-      );
+      const newFiles = Array.from(e.target.files).filter((file) => file.name.endsWith(".csv"));
       onFilesChange([...files, ...newFiles]);
     }
   };
@@ -122,9 +120,7 @@ export const MultiFileDropzone = ({
                 <p className="text-xs font-medium">
                   {files.length} file{files.length > 1 ? "s" : ""} selected
                 </p>
-                <p className="text-muted-foreground text-xs">
-                  Click or drop to add more
-                </p>
+                <p className="text-muted-foreground text-xs">Click or drop to add more</p>
               </>
             ) : (
               <>
@@ -139,52 +135,52 @@ export const MultiFileDropzone = ({
       </div>
 
       {files.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Selected Files ({files.length})</p>
-              {files.length > 1 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Selected Files ({files.length})</p>
+            {files.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAll}
+                className="h-7 px-2 text-xs"
+              >
+                <Icons.Trash className="mr-1 h-3 w-3" />
+                Clear All
+              </Button>
+            )}
+          </div>
+
+          <div className="max-h-[200px] space-y-1.5 overflow-y-auto rounded-lg border p-2">
+            {files.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className="bg-muted/50 hover:bg-muted group flex items-center justify-between rounded p-2 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Icons.FileText className="text-muted-foreground h-4 w-4" />
+                  <div>
+                    <p className="text-xs font-medium">{file.name}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {(file.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleClearAll}
-                  className="h-7 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveFile(index);
+                  }}
+                  className="h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100"
                 >
-                  <Icons.Trash className="mr-1 h-3 w-3" />
-                  Clear All
+                  <Icons.X className="h-3 w-3" />
                 </Button>
-              )}
-            </div>
-
-            <div className="max-h-[200px] space-y-1.5 overflow-y-auto rounded-lg border p-2">
-              {files.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="bg-muted/50 hover:bg-muted group flex items-center justify-between rounded p-2 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Icons.FileText className="text-muted-foreground h-4 w-4" />
-                    <div>
-                      <p className="text-xs font-medium">{file.name}</p>
-                      <p className="text-muted-foreground text-xs">
-                        {(file.size / 1024).toFixed(2)} KB
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemoveFile(index);
-                    }}
-                    className="h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <Icons.X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+        </div>
       )}
     </div>
   );

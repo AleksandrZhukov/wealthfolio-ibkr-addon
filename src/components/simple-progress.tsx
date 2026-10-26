@@ -5,10 +5,7 @@ interface ProgressIndicatorProps {
   className?: string;
 }
 
-export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
-  value,
-  className = "",
-}) => {
+export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ value, className = "" }) => {
   const clampedValue = Math.min(100, Math.max(0, value));
 
   return (

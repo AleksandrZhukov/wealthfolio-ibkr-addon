@@ -10,7 +10,8 @@ interface ImportAlertProps {
 export const ImportAlert: React.FC<ImportAlertProps> = ({ variant, title, children }) => {
   const variantStyles = {
     error: "border-red-500 bg-red-50 dark:bg-red-900/10 text-red-900 dark:text-red-100",
-    warning: "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-900 dark:text-yellow-100",
+    warning:
+      "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10 text-yellow-900 dark:text-yellow-100",
     info: "border-blue-500 bg-blue-50 dark:bg-blue-900/10 text-blue-900 dark:text-blue-100",
     success: "border-green-500 bg-green-50 dark:bg-green-900/10 text-green-900 dark:text-green-100",
   };

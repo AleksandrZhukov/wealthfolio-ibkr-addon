@@ -69,10 +69,7 @@ export class AsyncLock {
  * Execute a function with exclusive access using the provided lock.
  * Ensures the lock is always released, even if the function throws.
  */
-export async function withLock<T>(
-  lock: AsyncLock,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function withLock<T>(lock: AsyncLock, fn: () => Promise<T>): Promise<T> {
   const release = await lock.acquire();
   try {
     return await fn();

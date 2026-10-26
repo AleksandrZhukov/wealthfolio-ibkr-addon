@@ -28,12 +28,17 @@ function collectErrors(rows: ActivityImport[], into: Set<string>): void {
  * asset-backed row; the host rejects the whole batch if any row is invalid,
  * so only rows that passed validation are sent.
  */
-export async function importValidated(api: ImportApi, activities: ActivityImport[]): Promise<ValidatedImportResult> {
+export async function importValidated(
+  api: ImportApi,
+  activities: ActivityImport[],
+): Promise<ValidatedImportResult> {
   if (activities.length === 0) return { imported: 0, duplicates: 0, failed: 0, errors: [] };
 
   const checked = await api.checkImport(activities);
   const errors = new Set<string>();
-  const invalid = checked.filter((a) => a.isValid === false || Object.keys(a.errors ?? {}).length > 0);
+  const invalid = checked.filter(
+    (a) => a.isValid === false || Object.keys(a.errors ?? {}).length > 0,
+  );
   const valid = checked.filter((a) => !invalid.includes(a));
   collectErrors(invalid, errors);
 

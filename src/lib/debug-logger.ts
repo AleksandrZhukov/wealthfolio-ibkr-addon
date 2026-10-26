@@ -9,8 +9,8 @@
 function isDebugEnabled(): boolean {
   try {
     // Check localStorage for debug flag
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return localStorage.getItem('IBKR_DEBUG') === 'true';
+    if (typeof window !== "undefined" && window.localStorage) {
+      return localStorage.getItem("IBKR_DEBUG") === "true";
     }
   } catch {
     // localStorage not available (SSR, tests, etc.)

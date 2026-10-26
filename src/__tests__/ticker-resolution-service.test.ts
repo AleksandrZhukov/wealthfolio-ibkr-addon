@@ -351,7 +351,7 @@ describe("Ticker Resolution Service", () => {
       for (const [exchange, suffix] of Object.entries(EXCHANGE_TO_SUFFIX)) {
         expect(
           suffix === "" || suffix.startsWith("."),
-          `Exchange ${exchange} has invalid suffix: ${suffix}`
+          `Exchange ${exchange} has invalid suffix: ${suffix}`,
         ).toBe(true);
       }
     });
@@ -363,9 +363,7 @@ describe("Ticker Resolution Service", () => {
     });
 
     it("should resolve tickers from IBKR data", async () => {
-      const { resolveTicker, extractTickersToResolve } = await import(
-        "../lib/ticker-resolver"
-      );
+      const { resolveTicker, extractTickersToResolve } = await import("../lib/ticker-resolver");
 
       vi.mocked(extractTickersToResolve).mockReturnValueOnce([
         { symbol: "AAPL", isin: "US0378331005", exchange: "NASDAQ" },
@@ -413,9 +411,7 @@ describe("Ticker Resolution Service", () => {
     });
 
     it("should add exchange suffix for low confidence results", async () => {
-      const { resolveTicker, extractTickersToResolve } = await import(
-        "../lib/ticker-resolver"
-      );
+      const { resolveTicker, extractTickersToResolve } = await import("../lib/ticker-resolver");
 
       vi.mocked(extractTickersToResolve).mockReturnValueOnce([
         { symbol: "HSBA", isin: "GB0005405286", exchange: "LSE" },
@@ -446,9 +442,7 @@ describe("Ticker Resolution Service", () => {
     });
 
     it("should handle resolution errors gracefully", async () => {
-      const { resolveTicker, extractTickersToResolve } = await import(
-        "../lib/ticker-resolver"
-      );
+      const { resolveTicker, extractTickersToResolve } = await import("../lib/ticker-resolver");
 
       vi.mocked(extractTickersToResolve).mockReturnValueOnce([
         { symbol: "AAPL", isin: "US0378331005", exchange: "NASDAQ" },
@@ -475,9 +469,7 @@ describe("Ticker Resolution Service", () => {
     });
 
     it("should call progress callback", async () => {
-      const { resolveTicker, extractTickersToResolve } = await import(
-        "../lib/ticker-resolver"
-      );
+      const { resolveTicker, extractTickersToResolve } = await import("../lib/ticker-resolver");
 
       vi.mocked(extractTickersToResolve).mockReturnValueOnce([
         { symbol: "AAPL", isin: "US0378331005", exchange: "NASDAQ" },
@@ -555,9 +547,7 @@ describe("Ticker Resolution Service", () => {
     });
 
     it("should pass search function to resolveTicker", async () => {
-      const { resolveTicker, extractTickersToResolve } = await import(
-        "../lib/ticker-resolver"
-      );
+      const { resolveTicker, extractTickersToResolve } = await import("../lib/ticker-resolver");
 
       vi.mocked(extractTickersToResolve).mockReturnValueOnce([
         { symbol: "AAPL", isin: "US0378331005", exchange: "NASDAQ" },
@@ -583,7 +573,7 @@ describe("Ticker Resolution Service", () => {
 
       expect(resolveTicker).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({ searchFn: mockSearchFn })
+        expect.objectContaining({ searchFn: mockSearchFn }),
       );
     });
 

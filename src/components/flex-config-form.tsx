@@ -19,10 +19,7 @@ import { AccountGroupSuggestions } from "./account-group-suggestions";
 // Validation schema
 const flexConfigSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name too long"),
-  queryId: z
-    .string()
-    .min(1, "Query ID is required")
-    .regex(/^\d+$/, "Query ID must be numeric"),
+  queryId: z.string().min(1, "Query ID is required").regex(/^\d+$/, "Query ID must be numeric"),
   accountGroup: z.string().min(1, "Account group is required"),
   autoFetchEnabled: z.boolean(),
 });
@@ -82,27 +79,15 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
         {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            placeholder="e.g., Main Account, ISA"
-            {...register("name")}
-          />
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
-          )}
+          <Input id="name" placeholder="e.g., Main Account, ISA" {...register("name")} />
+          {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
         </div>
 
         {/* Query ID */}
         <div className="space-y-2">
           <Label htmlFor="queryId">Query ID</Label>
-          <Input
-            id="queryId"
-            placeholder="e.g., 123456"
-            {...register("queryId")}
-          />
-          {errors.queryId && (
-            <p className="text-sm text-destructive">{errors.queryId.message}</p>
-          )}
+          <Input id="queryId" placeholder="e.g., 123456" {...register("queryId")} />
+          {errors.queryId && <p className="text-sm text-destructive">{errors.queryId.message}</p>}
           <p className="text-xs text-muted-foreground">
             Find this in IBKR Client Portal → Reporting → Flex Queries
           </p>
@@ -111,11 +96,7 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
         {/* Account Group */}
         <div className="space-y-2">
           <Label htmlFor="accountGroup">Account Group</Label>
-          <Input
-            id="accountGroup"
-            placeholder="e.g., IBKR Main"
-            {...register("accountGroup")}
-          />
+          <Input id="accountGroup" placeholder="e.g., IBKR Main" {...register("accountGroup")} />
           {errors.accountGroup && (
             <p className="text-sm text-destructive">{errors.accountGroup.message}</p>
           )}
@@ -125,7 +106,8 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
             onSelect={(group) => setValue("accountGroup", group)}
           />
           <p className="text-xs text-muted-foreground">
-            Transactions will be imported to accounts in this group (e.g., "{watch("accountGroup") || "Group"} - USD")
+            Transactions will be imported to accounts in this group (e.g., "
+            {watch("accountGroup") || "Group"} - USD")
           </p>
         </div>
 

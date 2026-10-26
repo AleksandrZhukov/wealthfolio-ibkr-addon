@@ -42,9 +42,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ steps, currentStep }) => 
           </div>
           {index < steps.length - 1 && (
             <div
-              className={`h-0.5 flex-1 ${
-                step.id < currentStep ? "bg-green-500" : "bg-gray-300"
-              }`}
+              className={`h-0.5 flex-1 ${step.id < currentStep ? "bg-green-500" : "bg-gray-300"}`}
             />
           )}
         </React.Fragment>

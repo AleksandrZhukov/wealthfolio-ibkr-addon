@@ -9,7 +9,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchFlexQuery, setHttpClient, validateFlexToken, validateQueryId, testFlexConnection } from "../lib/flex-query-fetcher";
+import {
+  fetchFlexQuery,
+  setHttpClient,
+  validateFlexToken,
+  validateQueryId,
+  testFlexConnection,
+} from "../lib/flex-query-fetcher";
 import { AsyncLock, withLock } from "../lib/async-lock";
 
 describe("Error Handling", () => {
@@ -123,7 +129,7 @@ describe("Error Handling", () => {
             absoluteTimeoutMs: 150, // Very short timeout for test
             initialDelayMs: 50, // Short delay between polls
             maxDelayMs: 50,
-          }
+          },
         );
 
         expect(result.success).toBe(false);
@@ -220,7 +226,7 @@ describe("Error Handling", () => {
 
         const result = await fetchFlexQuery(
           { token: "validtoken12345678", queryId: "123456" },
-          { initialDelayMs: 10, maxDelayMs: 20 }
+          { initialDelayMs: 10, maxDelayMs: 20 },
         );
 
         expect(result.success).toBe(true);
@@ -267,7 +273,7 @@ describe("Error Handling", () => {
 
         const result = await fetchFlexQuery(
           { token: "validtoken12345678", queryId: "123456" },
-          { initialDelayMs: 10, maxDelayMs: 20 }
+          { initialDelayMs: 10, maxDelayMs: 20 },
         );
 
         expect(result.success).toBe(true);
@@ -303,7 +309,7 @@ describe("Error Handling", () => {
 
         const result = await fetchFlexQuery(
           { token: "validtoken12345678", queryId: "123456" },
-          { initialDelayMs: 10, maxDelayMs: 20 }
+          { initialDelayMs: 10, maxDelayMs: 20 },
         );
 
         expect(result.success).toBe(false);

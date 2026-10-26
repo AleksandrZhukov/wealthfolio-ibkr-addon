@@ -8,7 +8,9 @@ interface FlexConfigModalProps {
   onOpenChange: (open: boolean) => void;
   config?: FlexQueryConfig; // undefined = add mode, defined = edit mode
   existingGroups: string[];
-  onSubmit: (data: Omit<FlexQueryConfig, "id" | "lastFetchTime" | "lastFetchStatus" | "lastFetchError">) => Promise<void>;
+  onSubmit: (
+    data: Omit<FlexQueryConfig, "id" | "lastFetchTime" | "lastFetchStatus" | "lastFetchError">,
+  ) => Promise<void>;
   isSubmitting?: boolean;
 }
 

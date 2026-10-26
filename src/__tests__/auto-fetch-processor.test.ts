@@ -45,8 +45,7 @@ vi.mock("../lib/auto-fetch-helpers", () => ({
     lastFetchError: error?.message || String(error),
   })),
   formatImportResultMessage: vi.fn(
-    (imported, skipped, failed) =>
-      `${imported} imported, ${skipped} skipped, ${failed} failed`
+    (imported, skipped, failed) => `${imported} imported, ${skipped} skipped, ${failed} failed`,
   ),
   enrichIBKRErrorMessage: vi.fn((msg) => msg),
 }));
@@ -92,9 +91,7 @@ describe("Auto-Fetch Processor", () => {
     };
 
     it("should import activities successfully", async () => {
-      const { deduplicateActivities } = await import(
-        "../lib/activity-deduplicator"
-      );
+      const { deduplicateActivities } = await import("../lib/activity-deduplicator");
       vi.mocked(deduplicateActivities).mockResolvedValueOnce({
         toImport: [
           {
@@ -113,7 +110,18 @@ describe("Auto-Fetch Processor", () => {
 
       const mockActivitiesApi = {
         checkImport: vi.fn(async (rows: unknown[]) => rows),
-        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
+        import: vi.fn(async (rows: unknown[]) => ({
+          activities: rows,
+          importRunId: "run",
+          summary: {
+            total: rows.length,
+            imported: rows.length,
+            skipped: 0,
+            duplicates: 0,
+            assetsCreated: 0,
+            success: true,
+          },
+        })),
         getAll: vi.fn().mockResolvedValue([]),
       };
 
@@ -136,7 +144,7 @@ describe("Auto-Fetch Processor", () => {
         ["USD"],
         accountsByCurrency,
         mockActivitiesApi as never,
-        "TestConfig"
+        "TestConfig",
       );
 
       expect(result.imported).toBe(1);
@@ -165,7 +173,7 @@ describe("Auto-Fetch Processor", () => {
         ["USD", "EUR"],
         accountsByCurrency,
         null as never,
-        "TestConfig"
+        "TestConfig",
       );
 
       expect(result.imported).toBe(0);
@@ -174,9 +182,7 @@ describe("Auto-Fetch Processor", () => {
     });
 
     it("should handle import errors gracefully", async () => {
-      const { deduplicateActivities } = await import(
-        "../lib/activity-deduplicator"
-      );
+      const { deduplicateActivities } = await import("../lib/activity-deduplicator");
       vi.mocked(deduplicateActivities).mockResolvedValueOnce({
         toImport: [
           {
@@ -220,7 +226,7 @@ describe("Auto-Fetch Processor", () => {
         accountsByCurrency,
         mockActivitiesApi as never,
         "TestConfig",
-        mockLogger as never
+        mockLogger as never,
       );
 
       expect(result.failed).toBe(1);
@@ -229,9 +235,7 @@ describe("Auto-Fetch Processor", () => {
     });
 
     it("should handle deduplication correctly", async () => {
-      const { deduplicateActivities } = await import(
-        "../lib/activity-deduplicator"
-      );
+      const { deduplicateActivities } = await import("../lib/activity-deduplicator");
       vi.mocked(deduplicateActivities).mockResolvedValueOnce({
         toImport: [],
         duplicatesSkipped: 5,
@@ -262,7 +266,7 @@ describe("Auto-Fetch Processor", () => {
         ["USD"],
         accountsByCurrency,
         mockActivitiesApi as never,
-        "TestConfig"
+        "TestConfig",
       );
 
       expect(result.imported).toBe(0);
@@ -276,7 +280,7 @@ describe("Auto-Fetch Processor", () => {
         ["USD"],
         new Map([["USD", mockAccount]]),
         null as never,
-        "TestConfig"
+        "TestConfig",
       );
 
       expect(result.imported).toBe(0);
@@ -285,9 +289,7 @@ describe("Auto-Fetch Processor", () => {
     });
 
     it("should process multiple currencies", async () => {
-      const { deduplicateActivities } = await import(
-        "../lib/activity-deduplicator"
-      );
+      const { deduplicateActivities } = await import("../lib/activity-deduplicator");
 
       // First call for USD
       vi.mocked(deduplicateActivities).mockResolvedValueOnce({
@@ -325,7 +327,18 @@ describe("Auto-Fetch Processor", () => {
 
       const mockActivitiesApi = {
         checkImport: vi.fn(async (rows: unknown[]) => rows),
-        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
+        import: vi.fn(async (rows: unknown[]) => ({
+          activities: rows,
+          importRunId: "run",
+          summary: {
+            total: rows.length,
+            imported: rows.length,
+            skipped: 0,
+            duplicates: 0,
+            assetsCreated: 0,
+            success: true,
+          },
+        })),
         getAll: vi.fn().mockResolvedValue([]),
       };
 
@@ -367,7 +380,7 @@ describe("Auto-Fetch Processor", () => {
         ["USD", "GBP"],
         accountsByCurrency,
         mockActivitiesApi as never,
-        "TestConfig"
+        "TestConfig",
       );
 
       expect(result.imported).toBe(2);
@@ -391,11 +404,7 @@ describe("Auto-Fetch Processor", () => {
         errors: [],
       });
 
-      const result = await fetchAndParseFlexQuery(
-        "test-token",
-        "12345",
-        "Test Config"
-      );
+      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -412,11 +421,7 @@ describe("Auto-Fetch Processor", () => {
         error: "Network error",
       });
 
-      const result = await fetchAndParseFlexQuery(
-        "test-token",
-        "12345",
-        "Test Config"
-      );
+      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -432,11 +437,7 @@ describe("Auto-Fetch Processor", () => {
         csv: undefined,
       });
 
-      const result = await fetchAndParseFlexQuery(
-        "test-token",
-        "12345",
-        "Test Config"
-      );
+      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -465,17 +466,10 @@ describe("Auto-Fetch Processor", () => {
         error: vi.fn(),
       };
 
-      const result = await fetchAndParseFlexQuery(
-        "test-token",
-        "12345",
-        "Test Config",
-        mockLogger
-      );
+      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config", mockLogger);
 
       expect(result.success).toBe(true);
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Parse warnings")
-      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining("Parse warnings"));
     });
   });
 
@@ -509,7 +503,18 @@ describe("Auto-Fetch Processor", () => {
         },
         activities: {
           checkImport: vi.fn(async (rows: unknown[]) => rows),
-        import: vi.fn(async (rows: unknown[]) => ({ activities: rows, importRunId: "run", summary: { total: rows.length, imported: rows.length, skipped: 0, duplicates: 0, assetsCreated: 0, success: true } })),
+          import: vi.fn(async (rows: unknown[]) => ({
+            activities: rows,
+            importRunId: "run",
+            summary: {
+              total: rows.length,
+              imported: rows.length,
+              skipped: 0,
+              duplicates: 0,
+              assetsCreated: 0,
+              success: true,
+            },
+          })),
           getAll: vi.fn().mockResolvedValue([]),
         },
         secrets: {
@@ -599,9 +604,7 @@ describe("Auto-Fetch Processor", () => {
       const result = await processFlexQueryConfig(mockConfig, {
         ctx: mockCtx as unknown as AddonContext,
         token: "test-token",
-        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(
-          new Map([["USD", mockAccount]])
-        ),
+        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(new Map([["USD", mockAccount]])),
       });
 
       expect(result.success).toBe(true);
@@ -685,9 +688,7 @@ describe("Auto-Fetch Processor", () => {
       const result = await processFlexQueryConfig(mockConfig, {
         ctx: mockCtx as unknown as AddonContext,
         token: "test-token",
-        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(
-          new Map([["USD", mockAccount]])
-        ),
+        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(new Map([["USD", mockAccount]])),
       });
 
       expect(result.success).toBe(true);
@@ -738,9 +739,7 @@ describe("Auto-Fetch Processor", () => {
       const result = await processFlexQueryConfig(mockConfig, {
         ctx: mockCtx as unknown as AddonContext,
         token: "test-token",
-        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(
-          new Map([["USD", mockAccount]])
-        ),
+        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(new Map([["USD", mockAccount]])),
       });
 
       expect(result.success).toBe(true);
@@ -765,9 +764,7 @@ describe("Auto-Fetch Processor", () => {
       });
 
       // Make status save fail
-      vi.mocked(updateConfigStatus).mockRejectedValueOnce(
-        new Error("Failed to save status")
-      );
+      vi.mocked(updateConfigStatus).mockRejectedValueOnce(new Error("Failed to save status"));
 
       const mockCtx = createMockContext();
       const result = await processFlexQueryConfig(mockConfig, {
@@ -780,7 +777,7 @@ describe("Auto-Fetch Processor", () => {
       expect(result.success).toBe(true);
       expect(result.imported).toBe(0);
       expect(mockCtx.api.logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to save")
+        expect.stringContaining("Failed to save"),
       );
     });
 
@@ -794,9 +791,7 @@ describe("Auto-Fetch Processor", () => {
       });
 
       // Make status save fail too
-      vi.mocked(updateConfigStatus).mockRejectedValueOnce(
-        new Error("Failed to save error status")
-      );
+      vi.mocked(updateConfigStatus).mockRejectedValueOnce(new Error("Failed to save error status"));
 
       const mockCtx = createMockContext();
       const result = await processFlexQueryConfig(mockConfig, {
@@ -809,7 +804,7 @@ describe("Auto-Fetch Processor", () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe("Token expired");
       expect(mockCtx.api.logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to save error status")
+        expect.stringContaining("Failed to save error status"),
       );
     });
 
@@ -842,14 +837,12 @@ describe("Auto-Fetch Processor", () => {
       const result = await processFlexQueryConfig(mockConfig, {
         ctx: mockCtx as unknown as AddonContext,
         token: "test-token",
-        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(
-          new Map([["USD", mockAccount]])
-        ),
+        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(new Map([["USD", mockAccount]])),
       });
 
       expect(result.success).toBe(true);
       expect(mockCtx.api.logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("2 conversion error(s)")
+        expect.stringContaining("2 conversion error(s)"),
       );
     });
   });

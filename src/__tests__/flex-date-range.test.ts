@@ -52,10 +52,15 @@ describe("fetchFlexQuery SendRequest retry", () => {
       "Symbol,Quantity\nAAPL,10",
     ];
     const urls: string[] = [];
-    setHttpClient({ fetch: async (url: string) => { urls.push(url); return ok(bodies.shift()!); } });
+    setHttpClient({
+      fetch: async (url: string) => {
+        urls.push(url);
+        return ok(bodies.shift()!);
+      },
+    });
     const result = await fetchFlexQuery(
       { token: "t", queryId: "1" },
-      { sendRetryDelayMs: 1, initialDelayMs: 1 }
+      { sendRetryDelayMs: 1, initialDelayMs: 1 },
     );
     expect(result).toEqual({ success: true, csv: "Symbol,Quantity\nAAPL,10" });
     expect(urls.filter((u) => u.includes("SendRequest"))).toHaveLength(2);
@@ -67,7 +72,13 @@ describe("fetchFlexQuery SendRequest retry", () => {
     setHttpClient({
       fetch: async () => {
         sends++;
-        return { ok: true, status: 200, status_text: "200", headers: {}, body: "<FlexStatementResponse><Status>Fail</Status><ErrorCode>1001</ErrorCode><ErrorMessage>busy</ErrorMessage></FlexStatementResponse>" };
+        return {
+          ok: true,
+          status: 200,
+          status_text: "200",
+          headers: {},
+          body: "<FlexStatementResponse><Status>Fail</Status><ErrorCode>1001</ErrorCode><ErrorMessage>busy</ErrorMessage></FlexStatementResponse>",
+        };
       },
     });
     const result = await fetchFlexQuery({ token: "t", queryId: "1" }, { sendRetryDelayMs: 1 });

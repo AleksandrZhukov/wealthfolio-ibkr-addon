@@ -23,12 +23,16 @@ export const Accordion: React.FC<AccordionProps> = ({
   className = "",
 }) => {
   const [openItems, setOpenItems] = useState<string[]>(
-    Array.isArray(defaultValue) ? defaultValue : defaultValue ? [defaultValue] : []
+    Array.isArray(defaultValue) ? defaultValue : defaultValue ? [defaultValue] : [],
   );
 
   // Update openItems when defaultValue changes
   useEffect(() => {
-    const newOpenItems = Array.isArray(defaultValue) ? defaultValue : defaultValue ? [defaultValue] : [];
+    const newOpenItems = Array.isArray(defaultValue)
+      ? defaultValue
+      : defaultValue
+        ? [defaultValue]
+        : [];
     setOpenItems(newOpenItems);
   }, [defaultValue]);
 
@@ -39,7 +43,7 @@ export const Accordion: React.FC<AccordionProps> = ({
       setOpenItems(
         openItems.includes(value)
           ? openItems.filter((item) => item !== value)
-          : [...openItems, value]
+          : [...openItems, value],
       );
     }
   };
@@ -67,9 +71,7 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
 }) => {
   return (
     <AccordionItemContext.Provider value={value}>
-      <div className={`border-b ${className}`}>
-        {children}
-      </div>
+      <div className={`border-b ${className}`}>{children}</div>
     </AccordionItemContext.Provider>
   );
 };
@@ -79,10 +81,7 @@ interface AccordionTriggerProps {
   className?: string;
 }
 
-export const AccordionTrigger: React.FC<AccordionTriggerProps> = ({
-  children,
-  className = "",
-}) => {
+export const AccordionTrigger: React.FC<AccordionTriggerProps> = ({ children, className = "" }) => {
   const accordionContext = useContext(AccordionContext);
   const value = useContext(AccordionItemContext);
 
@@ -117,10 +116,7 @@ interface AccordionContentProps {
   className?: string;
 }
 
-export const AccordionContent: React.FC<AccordionContentProps> = ({
-  children,
-  className = "",
-}) => {
+export const AccordionContent: React.FC<AccordionContentProps> = ({ children, className = "" }) => {
   const accordionContext = useContext(AccordionContext);
   const value = useContext(AccordionItemContext);
 
@@ -136,9 +132,5 @@ export const AccordionContent: React.FC<AccordionContentProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className={`overflow-hidden text-sm transition-all ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`overflow-hidden text-sm transition-all ${className}`}>{children}</div>;
 };

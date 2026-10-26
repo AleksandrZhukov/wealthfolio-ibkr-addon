@@ -24,11 +24,7 @@ const formatRelativeTime = (isoString: string): string => {
   return `${diffDays}d ago`;
 };
 
-export const FlexConfigItem: React.FC<FlexConfigItemProps> = ({
-  config,
-  onEdit,
-  onDelete,
-}) => {
+export const FlexConfigItem: React.FC<FlexConfigItemProps> = ({ config, onEdit, onDelete }) => {
   return (
     <div className="flex items-center justify-between p-4 hover:bg-muted/50">
       <div className="space-y-1">
@@ -53,7 +49,9 @@ export const FlexConfigItem: React.FC<FlexConfigItemProps> = ({
             Query ID: <code className="rounded bg-muted px-1">{config.queryId}</code>
           </span>
           <span>→</span>
-          <span>Account Group: <strong>{config.accountGroup}</strong></span>
+          <span>
+            Account Group: <strong>{config.accountGroup}</strong>
+          </span>
         </div>
 
         {/* Last fetch status */}

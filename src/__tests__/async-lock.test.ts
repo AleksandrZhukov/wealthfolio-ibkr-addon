@@ -51,7 +51,7 @@ describe("AsyncLock", () => {
         lock.acquire().then((rel) => {
           order.push(id);
           rel();
-        })
+        }),
       );
 
       release();
@@ -237,7 +237,7 @@ describe("withLock", () => {
     await expect(
       withLock(lock, async () => {
         throw new Error("Test error");
-      })
+      }),
     ).rejects.toThrow("Test error");
 
     expect(lock.isLocked()).toBe(false);

@@ -10,7 +10,11 @@
  * NO hardcoded exchange suffixes - all resolution is ISIN-based via Yahoo Finance API
  */
 
-import { API_REQUEST_TIMEOUT_MS, TICKER_CACHE_MAX_ENTRIES, TICKER_CACHE_MAX_AGE_MS } from "./constants";
+import {
+  API_REQUEST_TIMEOUT_MS,
+  TICKER_CACHE_MAX_ENTRIES,
+  TICKER_CACHE_MAX_AGE_MS,
+} from "./constants";
 import { getErrorMessage } from "./shared-utils";
 import type { TickerSearchResult } from "../types";
 import { debug } from "./debug-logger";
@@ -62,7 +66,7 @@ function areSymbolsCompatible(resultSymbol: string, requestSymbol: string): bool
     // Share class: "BRK B" matches BRK-B / BRK.B / BRK/B, but not BRKU or BRK
     return resultSymbol.toUpperCase().replace(/[./]/g, "-") === toYahooShareClass(requestSymbol);
   }
-  const resultBase = resultSymbol.split('.')[0].toUpperCase();
+  const resultBase = resultSymbol.split(".")[0].toUpperCase();
   const requestBase = requestSymbol.toUpperCase();
 
   // Exact match
@@ -161,7 +165,9 @@ function pruneCache(cache: Record<string, TickerCacheEntry>): Record<string, Tic
       return timeA - timeB;
     });
     const prunedEntries = validEntries.slice(validEntries.length - TICKER_CACHE_MAX_ENTRIES);
-    debug.log(`[Ticker Resolver] Pruned cache from ${validEntries.length} to ${prunedEntries.length} entries`);
+    debug.log(
+      `[Ticker Resolver] Pruned cache from ${validEntries.length} to ${prunedEntries.length} entries`,
+    );
     return Object.fromEntries(prunedEntries);
   }
 
@@ -203,7 +209,10 @@ async function saveToLocalCache(
     localStorage.setItem(LOCALSTORAGE_CACHE_KEY, JSON.stringify(cache));
   } catch (error) {
     // Cache errors are non-fatal but should be logged for debugging
-    debug.warn(`[Ticker Resolver] Cache write error for ${isin}:${exchange}:`, getErrorMessage(error));
+    debug.warn(
+      `[Ticker Resolver] Cache write error for ${isin}:${exchange}:`,
+      getErrorMessage(error),
+    );
   }
 }
 
@@ -218,13 +227,17 @@ export type SearchTickerFn = (query: string) => Promise<TickerSearchResult[]>;
  */
 async function searchWealthfolioAPI(
   request: TickerResolutionRequest,
-  searchFn?: SearchTickerFn | null
+  searchFn?: SearchTickerFn | null,
 ): Promise<TickerResolutionResult | null> {
   const { isin, symbol, cusip, figi, description } = request;
-  debug.log(`[Ticker Resolver] Wealthfolio API search: ISIN=${isin}, symbol=${symbol}, CUSIP=${cusip || 'N/A'}, FIGI=${figi || 'N/A'}`);
+  debug.log(
+    `[Ticker Resolver] Wealthfolio API search: ISIN=${isin}, symbol=${symbol}, CUSIP=${cusip || "N/A"}, FIGI=${figi || "N/A"}`,
+  );
 
   if (!searchFn) {
-    debug.warn('[Ticker Resolver] No search function available - pass searchFn to resolveTicker() options');
+    debug.warn(
+      "[Ticker Resolver] No search function available - pass searchFn to resolveTicker() options",
+    );
     return null;
   }
 
@@ -241,14 +254,18 @@ async function searchWealthfolioAPI(
       if (results.length > 0) {
         // Log all results for debugging
         results.forEach((r, idx) => {
-          debug.log(`[Ticker Resolver] Result ${idx + 1}: ${r.symbol} (exchange: ${r.exchange}, score: ${r.score})`);
+          debug.log(
+            `[Ticker Resolver] Result ${idx + 1}: ${r.symbol} (exchange: ${r.exchange}, score: ${r.score})`,
+          );
         });
 
         // Find compatible symbol match (exact or numeric equivalence for HK stocks)
-        const compatibleMatch = results.find(r => areSymbolsCompatible(r.symbol, symbol));
+        const compatibleMatch = results.find((r) => areSymbolsCompatible(r.symbol, symbol));
 
         if (compatibleMatch) {
-          debug.log(`[Ticker Resolver] Found compatible symbol match: ${compatibleMatch.symbol} (request: ${symbol})`);
+          debug.log(
+            `[Ticker Resolver] Found compatible symbol match: ${compatibleMatch.symbol} (request: ${symbol})`,
+          );
           return {
             yahooTicker: compatibleMatch.symbol,
             confidence: "high",
@@ -256,7 +273,9 @@ async function searchWealthfolioAPI(
             name: compatibleMatch.name || compatibleMatch.symbol,
           };
         } else {
-          debug.log(`[Ticker Resolver] No compatible match for ${symbol} in ISIN search results, will try other methods`);
+          debug.log(
+            `[Ticker Resolver] No compatible match for ${symbol} in ISIN search results, will try other methods`,
+          );
         }
       }
     } catch (isinError) {
@@ -272,7 +291,7 @@ async function searchWealthfolioAPI(
       results = await searchTicker(cusip);
       debug.log(`[Ticker Resolver] Wealthfolio CUSIP search found ${results.length} results`);
       if (results.length > 0) {
-        const compatibleMatch = results.find(r => areSymbolsCompatible(r.symbol, symbol));
+        const compatibleMatch = results.find((r) => areSymbolsCompatible(r.symbol, symbol));
         if (compatibleMatch) {
           debug.log(`[Ticker Resolver] CUSIP compatible match: ${compatibleMatch.symbol}`);
           return {
@@ -297,7 +316,7 @@ async function searchWealthfolioAPI(
       results = await searchTicker(figi);
       debug.log(`[Ticker Resolver] Wealthfolio FIGI search found ${results.length} results`);
       if (results.length > 0) {
-        const compatibleMatch = results.find(r => areSymbolsCompatible(r.symbol, symbol));
+        const compatibleMatch = results.find((r) => areSymbolsCompatible(r.symbol, symbol));
         if (compatibleMatch) {
           debug.log(`[Ticker Resolver] FIGI compatible match: ${compatibleMatch.symbol}`);
           return {
@@ -325,10 +344,12 @@ async function searchWealthfolioAPI(
       if (results.length > 0) {
         // Log all results for debugging
         results.forEach((r, idx) => {
-          debug.log(`[Ticker Resolver] Symbol result ${idx + 1}: ${r.symbol} (exchange: ${r.exchange || 'N/A'}, score: ${r.score})`);
+          debug.log(
+            `[Ticker Resolver] Symbol result ${idx + 1}: ${r.symbol} (exchange: ${r.exchange || "N/A"}, score: ${r.score})`,
+          );
         });
 
-        const compatibleMatch = results.find(r => areSymbolsCompatible(r.symbol, symbol));
+        const compatibleMatch = results.find((r) => areSymbolsCompatible(r.symbol, symbol));
 
         if (compatibleMatch) {
           debug.log(`[Ticker Resolver] Found compatible symbol match: ${compatibleMatch.symbol}`);
@@ -339,7 +360,9 @@ async function searchWealthfolioAPI(
             name: compatibleMatch.name || compatibleMatch.symbol,
           };
         } else {
-          debug.log(`[Ticker Resolver] No compatible match for ${symbol} in search results, will use fallback`);
+          debug.log(
+            `[Ticker Resolver] No compatible match for ${symbol} in search results, will use fallback`,
+          );
         }
       }
     } catch (symbolError) {
@@ -355,7 +378,7 @@ async function searchWealthfolioAPI(
       results = await searchTicker(description);
       debug.log(`[Ticker Resolver] Wealthfolio description search found ${results.length} results`);
       if (results.length > 0) {
-        const compatibleMatch = results.find(r => areSymbolsCompatible(r.symbol, symbol));
+        const compatibleMatch = results.find((r) => areSymbolsCompatible(r.symbol, symbol));
         if (compatibleMatch) {
           debug.log(`[Ticker Resolver] Description compatible match: ${compatibleMatch.symbol}`);
           return {
@@ -373,7 +396,9 @@ async function searchWealthfolioAPI(
     }
   }
 
-  debug.log(`[Ticker Resolver] No results found for ISIN ${isin}, CUSIP ${cusip}, FIGI ${figi}, or symbol ${symbol}`);
+  debug.log(
+    `[Ticker Resolver] No results found for ISIN ${isin}, CUSIP ${cusip}, FIGI ${figi}, or symbol ${symbol}`,
+  );
   return null;
 }
 
@@ -424,7 +449,7 @@ async function searchYahooFinanceByISIN(
   symbol?: string,
 ): Promise<TickerResolutionResult | null> {
   if (!isin) {
-    debug.log('[Ticker Resolver] ISIN search: no ISIN provided');
+    debug.log("[Ticker Resolver] ISIN search: no ISIN provided");
     return null;
   }
 
@@ -444,7 +469,7 @@ async function searchYahooFinanceByISIN(
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       },
       signal: controller.signal,
-      mode: 'cors',
+      mode: "cors",
     });
     debug.log(`[Ticker Resolver] Fetch completed for ${isin}`);
 
@@ -463,23 +488,31 @@ async function searchYahooFinanceByISIN(
 
     if (quotes.length > 0) {
       // Log all results for debugging
-      quotes.slice(0, 5).forEach((q: { symbol: string; longname?: string; shortname?: string }, idx: number) => {
-        debug.log(`[Ticker Resolver] Yahoo result ${idx + 1}: ${q.symbol} (${q.longname || q.shortname || 'N/A'})`);
-      });
+      quotes
+        .slice(0, 5)
+        .forEach((q: { symbol: string; longname?: string; shortname?: string }, idx: number) => {
+          debug.log(
+            `[Ticker Resolver] Yahoo result ${idx + 1}: ${q.symbol} (${q.longname || q.shortname || "N/A"})`,
+          );
+        });
 
       // If original symbol is provided, try to find an exact match first
       // Find compatible symbol match (exact or numeric equivalence for HK stocks)
       if (symbol) {
         const compatibleMatch = quotes.find((q: { symbol: string }) =>
-          areSymbolsCompatible(q.symbol, symbol)
+          areSymbolsCompatible(q.symbol, symbol),
         );
 
         if (compatibleMatch) {
           const ticker = compatibleMatch.symbol;
-          debug.log(`[Ticker Resolver] Found compatible symbol match in Yahoo results: ${ticker} (request: ${symbol})`);
+          debug.log(
+            `[Ticker Resolver] Found compatible symbol match in Yahoo results: ${ticker} (request: ${symbol})`,
+          );
 
           const isValid = await validateYahooTicker(ticker);
-          debug.log(`[Ticker Resolver] Ticker ${ticker} validation: ${isValid ? 'VALID' : 'INVALID'}`);
+          debug.log(
+            `[Ticker Resolver] Ticker ${ticker} validation: ${isValid ? "VALID" : "INVALID"}`,
+          );
 
           if (isValid) {
             return {
@@ -490,7 +523,9 @@ async function searchYahooFinanceByISIN(
             };
           }
         } else {
-          debug.log(`[Ticker Resolver] No compatible match for ${symbol} in Yahoo ISIN results, skipping to fallback`);
+          debug.log(
+            `[Ticker Resolver] No compatible match for ${symbol} in Yahoo ISIN results, skipping to fallback`,
+          );
           // Don't return first result if it doesn't match - let fallback handle it
           return null;
         }
@@ -503,7 +538,9 @@ async function searchYahooFinanceByISIN(
         // Validate the ticker to ensure it's accessible
         const isValid = await validateYahooTicker(ticker);
 
-        debug.log(`[Ticker Resolver] Ticker ${ticker} validation: ${isValid ? 'VALID' : 'INVALID'}`);
+        debug.log(
+          `[Ticker Resolver] Ticker ${ticker} validation: ${isValid ? "VALID" : "INVALID"}`,
+        );
 
         if (isValid) {
           return {
@@ -532,48 +569,48 @@ async function searchYahooFinanceByISIN(
  */
 const EXCHANGE_TO_SUFFIX: Record<string, string> = {
   // UK
-  "LSE": ".L",
-  "LSEIOB1": ".L",
-  "LSEETF": ".L",
+  LSE: ".L",
+  LSEIOB1: ".L",
+  LSEETF: ".L",
   // Switzerland
-  "EBS": ".SW",
-  "SWX": ".SW",
+  EBS: ".SW",
+  SWX: ".SW",
   // Germany
-  "FWB": ".DE",
-  "IBIS": ".DE",
-  "XETRA": ".DE",
+  FWB: ".DE",
+  IBIS: ".DE",
+  XETRA: ".DE",
   // France
-  "SBF": ".PA",
+  SBF: ".PA",
   // Netherlands
-  "AEB": ".AS",
+  AEB: ".AS",
   // Italy
-  "BVME": ".MI",
+  BVME: ".MI",
   // Spain
-  "BM": ".MC",
+  BM: ".MC",
   // Hong Kong
-  "SEHK": ".HK",
+  SEHK: ".HK",
   // Japan
-  "TSE": ".T",
+  TSE: ".T",
   // Australia
-  "ASX": ".AX",
+  ASX: ".AX",
   // Singapore
-  "SGX": ".SI",
+  SGX: ".SI",
   // Norway
-  "OSE": ".OL",
+  OSE: ".OL",
   // Sweden
-  "SFB": ".ST",
+  SFB: ".ST",
   // Denmark
-  "KFB": ".CO",
+  KFB: ".CO",
   // Canada
-  "TSX": ".TO",
-  "VENTURE": ".V",
+  TSX: ".TO",
+  VENTURE: ".V",
   // US exchanges (no suffix needed, but listed for documentation)
-  "NYSE": "",
-  "NASDAQ": "",
-  "AMEX": "",
-  "ARCA": "",
-  "BATS": "",
-  "IEX": "",
+  NYSE: "",
+  NASDAQ: "",
+  AMEX: "",
+  ARCA: "",
+  BATS: "",
+  IEX: "",
   // Unknown exchanges default to empty suffix (US-style)
 };
 
@@ -586,7 +623,7 @@ const EXCHANGE_TO_SUFFIX: Record<string, string> = {
  */
 function trySymbolWithExchangeSuffix(
   symbol: string,
-  exchange: string
+  exchange: string,
 ): TickerResolutionResult | null {
   const suffix = EXCHANGE_TO_SUFFIX[exchange];
 
@@ -594,7 +631,7 @@ function trySymbolWithExchangeSuffix(
   const resolvedSuffix = suffix ?? "";
 
   // Construct the ticker
-  const ticker = symbol.includes('.') ? symbol : `${toYahooShareClass(symbol)}${resolvedSuffix}`;
+  const ticker = symbol.includes(".") ? symbol : `${toYahooShareClass(symbol)}${resolvedSuffix}`;
   debug.log(`[Ticker Resolver] Symbol+exchange fallback: ${symbol} + ${exchange} → ${ticker}`);
 
   return {
@@ -669,7 +706,9 @@ export async function resolveTicker(
   // Used when ISIN lookup returns no compatible match (e.g., SGLN with IGLN's ISIN)
   const symbolExchangeResult = trySymbolWithExchangeSuffix(symbol, exchange);
   if (symbolExchangeResult) {
-    debug.log(`[Ticker Resolver] Symbol+exchange fallback: ${symbol} → ${symbolExchangeResult.yahooTicker}`);
+    debug.log(
+      `[Ticker Resolver] Symbol+exchange fallback: ${symbol} → ${symbolExchangeResult.yahooTicker}`,
+    );
     await saveToLocalCache(isin, exchange, symbolExchangeResult);
     return symbolExchangeResult;
   }
@@ -703,7 +742,7 @@ export function extractTickersToResolve(
     const listingExchange = row.ListingExchange?.toString().trim();
 
     // Skip header rows (where Symbol column contains "Symbol")
-    if (symbol === 'Symbol' || symbol === '' || !symbol) {
+    if (symbol === "Symbol" || symbol === "" || !symbol) {
       continue;
     }
 
@@ -717,7 +756,7 @@ export function extractTickersToResolve(
     }
 
     // Skip special exchanges and rows without required data
-    const skipExchanges = ['IDEALFX', 'TransactionID', 'TransferAccount', 'DARK'];
+    const skipExchanges = ["IDEALFX", "TransactionID", "TransferAccount", "DARK"];
     if (!isin || !symbol || !currency || skipExchanges.includes(exchange)) {
       continue;
     }

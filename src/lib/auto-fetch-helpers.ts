@@ -35,7 +35,9 @@ export function isConfigInCooldown(lastFetchTime: string | undefined): {
   // Future timestamp is suspicious (clock skew or manipulation)
   // Conservative approach: treat as in cooldown to prevent potential abuse
   if (lastFetchMs > now) {
-    debug.warn(`[IBKR Auto-fetch] Future timestamp detected (${lastFetchTime}), treating as in cooldown`);
+    debug.warn(
+      `[IBKR Auto-fetch] Future timestamp detected (${lastFetchTime}), treating as in cooldown`,
+    );
     return { inCooldown: true, hoursRemaining: FETCH_COOLDOWN_MS / MS_PER_HOUR };
   }
 
@@ -53,19 +55,21 @@ export function isConfigInCooldown(lastFetchTime: string | undefined): {
  * This creates a function that fetches existing activities and maps them
  * to the fingerprint format expected by deduplicateActivities
  */
-export function createActivityFingerprintGetter(
-  activitiesApi: { getAll: (accountId: string) => Promise<ActivityDetails[]> }
-): (accountId: string) => Promise<{
-  activityDate: string;
-  assetId: string;
-  activityType: string;
-  quantity: number | string | null;
-  unitPrice: number | string | null;
-  amount?: number | string | null;
-  fee: number | string | null;
-  currency: string;
-  comment?: string;
-}[]> {
+export function createActivityFingerprintGetter(activitiesApi: {
+  getAll: (accountId: string) => Promise<ActivityDetails[]>;
+}): (accountId: string) => Promise<
+  {
+    activityDate: string;
+    assetId: string;
+    activityType: string;
+    quantity: number | string | null;
+    unitPrice: number | string | null;
+    amount?: number | string | null;
+    fee: number | string | null;
+    currency: string;
+    comment?: string;
+  }[]
+> {
   return async (accountId: string) => {
     const activities = await activitiesApi.getAll(accountId);
     return activities.map((a) => ({
@@ -127,7 +131,7 @@ export function createErrorStatus(error: unknown): ConfigStatusUpdate {
 export function formatImportResultMessage(
   imported: number,
   skipped: number,
-  failed: number = 0
+  failed: number = 0,
 ): string {
   const parts: string[] = [`${imported} transactions imported`];
   if (skipped > 0) {
@@ -145,15 +149,21 @@ export function formatImportResultMessage(
  */
 const IBKR_ERROR_GUIDANCE: Record<string, string> = {
   // Token issues
-  "Token has expired": "Token has expired. Generate a new token in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
-  "Token is invalid": "Token is invalid. Check your Flex Query token in IBKR Account Management → Reports → Flex Queries.",
+  "Token has expired":
+    "Token has expired. Generate a new token in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
+  "Token is invalid":
+    "Token is invalid. Check your Flex Query token in IBKR Account Management → Reports → Flex Queries.",
   // IP restriction
-  "IP address restriction violated": "IP address not allowed. Update IP restrictions in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
-  "IP address not allowed": "IP address not allowed. Update IP restrictions in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
+  "IP address restriction violated":
+    "IP address not allowed. Update IP restrictions in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
+  "IP address not allowed":
+    "IP address not allowed. Update IP restrictions in IBKR Account Management → Reports → Flex Queries → Configure Flex Token.",
   // Query issues
-  "Query is invalid": "Query ID is invalid. Verify the Flex Query ID in IBKR Account Management → Reports → Flex Queries.",
+  "Query is invalid":
+    "Query ID is invalid. Verify the Flex Query ID in IBKR Account Management → Reports → Flex Queries.",
   // Permissions
-  "Token missing permissions": "Token lacks required permissions. Regenerate the token with proper permissions in IBKR Account Management.",
+  "Token missing permissions":
+    "Token lacks required permissions. Regenerate the token with proper permissions in IBKR Account Management.",
 };
 
 /**

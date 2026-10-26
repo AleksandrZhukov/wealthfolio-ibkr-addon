@@ -10,8 +10,18 @@ import { MAX_FX_RATE } from "./constants";
  * Valid activity types that can be imported to Wealthfolio
  */
 const VALID_ACTIVITY_TYPES = new Set<ActivityType>([
-  "BUY", "SELL", "DIVIDEND", "INTEREST", "DEPOSIT", "WITHDRAWAL",
-  "TRANSFER_IN", "TRANSFER_OUT", "FEE", "TAX", "SPLIT", "CREDIT"
+  "BUY",
+  "SELL",
+  "DIVIDEND",
+  "INTEREST",
+  "DEPOSIT",
+  "WITHDRAWAL",
+  "TRANSFER_IN",
+  "TRANSFER_OUT",
+  "FEE",
+  "TAX",
+  "SPLIT",
+  "CREDIT",
 ]);
 
 /**
@@ -29,17 +39,17 @@ const VALID_ACTIVITY_TYPES = new Set<ActivityType>([
  */
 function mapActivityType(ibkrType: string): ActivityType | null {
   const mapping: Record<string, ActivityType> = {
-    "IBKR_BUY": "BUY",
-    "IBKR_SELL": "SELL",
-    "IBKR_SPLIT": "SPLIT",
-    "IBKR_DIVIDEND": "DIVIDEND",
-    "IBKR_TAX": "TAX",
-    "IBKR_FEE": "FEE",
-    "IBKR_DEPOSIT": "DEPOSIT",
-    "IBKR_WITHDRAWAL": "WITHDRAWAL",
-    "IBKR_TRANSFER_IN": "TRANSFER_IN",
-    "IBKR_TRANSFER_OUT": "TRANSFER_OUT",
-    "IBKR_INTEREST": "INTEREST",
+    IBKR_BUY: "BUY",
+    IBKR_SELL: "SELL",
+    IBKR_SPLIT: "SPLIT",
+    IBKR_DIVIDEND: "DIVIDEND",
+    IBKR_TAX: "TAX",
+    IBKR_FEE: "FEE",
+    IBKR_DEPOSIT: "DEPOSIT",
+    IBKR_WITHDRAWAL: "WITHDRAWAL",
+    IBKR_TRANSFER_IN: "TRANSFER_IN",
+    IBKR_TRANSFER_OUT: "TRANSFER_OUT",
+    IBKR_INTEREST: "INTEREST",
   };
 
   const mapped = mapping[ibkrType];
@@ -63,7 +73,9 @@ function parseNumeric(value: string | number | undefined | null, fieldName?: str
 
   if (isNaN(parsed)) {
     // Log warning for non-empty values that can't be parsed
-    debug.warn(`[Activity Converter] Could not parse numeric value${fieldName ? ` for ${fieldName}` : ""}: "${value}"`);
+    debug.warn(
+      `[Activity Converter] Could not parse numeric value${fieldName ? ` for ${fieldName}` : ""}: "${value}"`,
+    );
     return 0;
   }
 
@@ -132,7 +144,7 @@ function buildPositionHistory(processedData: ProcessedIBKRRow[]): Map<string, Po
 function getPositionAtDate(
   positionHistory: Map<string, PositionEntry[]>,
   symbol: string,
-  date: string
+  date: string,
 ): number {
   const entries = positionHistory.get(symbol.toUpperCase());
   if (!entries || entries.length === 0) return 0;
@@ -233,7 +245,7 @@ function getFXRate(
   lookup: Map<string, FXRateEntry[]>,
   baseCurrency: string,
   targetCurrency: string,
-  date: string
+  date: string,
 ): number | null {
   const key = `${baseCurrency}/${targetCurrency}`;
   const entries = lookup.get(key);
@@ -326,8 +338,8 @@ function determineTransactionCurrency(row: ProcessedIBKRRow, baseCurrency: strin
   }
 
   // FX conversions: Symbol is like "GBP.USD", "EUR.USD", etc.
-  if (row.Symbol && row.Symbol.includes('.')) {
-    const parts = row.Symbol.split('.');
+  if (row.Symbol && row.Symbol.includes(".")) {
+    const parts = row.Symbol.split(".");
     if (parts.length === 2) {
       // For FX, we'll handle this specially in the FX splitter
       // For now, return base currency (will be overridden by splitter)
@@ -354,7 +366,7 @@ function determineTransactionCurrency(row: ProcessedIBKRRow, baseCurrency: strin
  */
 export async function convertToActivityImports(
   processedData: ProcessedIBKRRow[],
-  accountPreviews: AccountPreview[]
+  accountPreviews: AccountPreview[],
 ): Promise<ConversionResult> {
   // Input validation - early return for empty inputs
   if (!processedData || processedData.length === 0) {
@@ -364,12 +376,15 @@ export async function convertToActivityImports(
   if (!accountPreviews || accountPreviews.length === 0) {
     return {
       activities: [],
-      errors: [{
-        rowIndex: 0,
-        identifier: "Account Setup",
-        message: "No account previews provided - cannot convert activities without target accounts",
-        rowData: {},
-      }],
+      errors: [
+        {
+          rowIndex: 0,
+          identifier: "Account Setup",
+          message:
+            "No account previews provided - cannot convert activities without target accounts",
+          rowData: {},
+        },
+      ],
       skipped: processedData.length,
     };
   }
@@ -526,7 +541,9 @@ export async function convertToActivityImports(
                   taxRate = tradeMoneyBase / estimatedBaseDividend;
                 } else {
                   taxRate = 0;
-                  debug.warn(`Zero estimated dividend for tax calculation: ${symbol} on ${txDate}, tax rate defaulted to 0`);
+                  debug.warn(
+                    `Zero estimated dividend for tax calculation: ${symbol} on ${txDate}, tax rate defaulted to 0`,
+                  );
                 }
                 // Apply tax rate to actual dividend amount
                 amount = grossDividend * taxRate;
@@ -538,7 +555,9 @@ export async function convertToActivityImports(
                   // Fall back to base currency when no FX rate available
                   amount = tradeMoneyBase;
                   currency = baseCurrency;
-                  debug.warn(`No FX rate or position for ${baseCurrency}/${dividendInfo.currency} tax: ${symbol} on ${txDate}, using base currency amount`);
+                  debug.warn(
+                    `No FX rate or position for ${baseCurrency}/${dividendInfo.currency} tax: ${symbol} on ${txDate}, using base currency amount`,
+                  );
                 }
               }
             } else {
@@ -574,7 +593,11 @@ export async function convertToActivityImports(
             // Fallback to TradeMoney if parsing fails
             amount = Math.abs(parseNumeric(row.TradeMoney));
           }
-        } else if (activityCode === "OFEE" && row.ListingExchange && EXCHANGE_TO_CURRENCY[row.ListingExchange]) {
+        } else if (
+          activityCode === "OFEE" &&
+          row.ListingExchange &&
+          EXCHANGE_TO_CURRENCY[row.ListingExchange]
+        ) {
           // OFEE dividend fees at BaseCurrency level need FX conversion
           // TradeMoney is in base currency, but the fee should be in the security's trading currency
           const targetCurrency = EXCHANGE_TO_CURRENCY[row.ListingExchange];
@@ -589,7 +612,9 @@ export async function convertToActivityImports(
             // Fallback: use TradeMoney as-is in base currency
             amount = tradeMoneyBase;
             currency = baseCurrency;
-            debug.warn(`No FX rate for ${baseCurrency}/${targetCurrency} OFEE fee on ${txDate}, using base currency amount`);
+            debug.warn(
+              `No FX rate for ${baseCurrency}/${targetCurrency} OFEE fee on ${txDate}, using base currency amount`,
+            );
           }
         } else {
           amount = Math.abs(parseNumeric(row.TradeMoney));
@@ -597,7 +622,7 @@ export async function convertToActivityImports(
         fee = Math.abs(parseNumeric(row.IBCommission));
       }
 
-      const accountPreview = accountPreviews.find(p => p.currency === currency);
+      const accountPreview = accountPreviews.find((p) => p.currency === currency);
 
       if (!accountPreview) {
         errors.push({
@@ -610,7 +635,8 @@ export async function convertToActivityImports(
 
       // For cash transactions (not trades), quantity should be the cash amount
       // and unitPrice should be 1
-      const isCashTransaction = ibkrType !== "IBKR_BUY" && ibkrType !== "IBKR_SELL" && ibkrType !== "IBKR_SPLIT";
+      const isCashTransaction =
+        ibkrType !== "IBKR_BUY" && ibkrType !== "IBKR_SELL" && ibkrType !== "IBKR_SPLIT";
       const finalQuantity = isCashTransaction ? amount : quantity;
       const finalUnitPrice = isCashTransaction ? 1 : unitPrice;
 
@@ -649,7 +675,10 @@ export async function convertToActivityImports(
         // The TransactionID keeps IBKR's repeated same-day postings (e.g. tax
         // charge/reversal chains) distinct in the host's content-based import
         // dedup, while a re-import of the same posting still matches.
-        comment: [row.ActivityDescription || row.Description || "", row.TransactionID ? `[IBKR ${row.TransactionID}]` : ""]
+        comment: [
+          row.ActivityDescription || row.Description || "",
+          row.TransactionID ? `[IBKR ${row.TransactionID}]` : "",
+        ]
           .filter(Boolean)
           .join(" "),
         isDraft: false,
@@ -671,7 +700,9 @@ export async function convertToActivityImports(
 
   // Log summary for debugging
   if (errors.length > 0) {
-    debug.warn(`Activity conversion completed with ${errors.length} error(s), ${skipped} skipped, ${activities.length} successful`);
+    debug.warn(
+      `Activity conversion completed with ${errors.length} error(s), ${skipped} skipped, ${activities.length} successful`,
+    );
   }
 
   return { activities, errors, skipped };

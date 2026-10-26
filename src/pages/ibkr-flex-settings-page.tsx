@@ -198,7 +198,8 @@ const IBKRFlexSettingsPage: React.FC<IBKRFlexSettingsPageProps> = ({ ctx }) => {
                 </div>
               )}
               <p className="mt-2 text-xs text-muted-foreground">
-                Get this from IBKR Client Portal → Reporting → Flex Queries → Flex Web Service Configuration
+                Get this from IBKR Client Portal → Reporting → Flex Queries → Flex Web Service
+                Configuration
               </p>
             </CardContent>
           </Card>

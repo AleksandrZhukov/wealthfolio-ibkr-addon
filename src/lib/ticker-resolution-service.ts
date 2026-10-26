@@ -30,48 +30,48 @@ export interface TickerResolution {
  */
 const EXCHANGE_TO_SUFFIX: Record<string, string> = {
   // UK
-  "LSE": ".L",
-  "LSEIOB1": ".L",
-  "LSEETF": ".L",
+  LSE: ".L",
+  LSEIOB1: ".L",
+  LSEETF: ".L",
   // Switzerland
-  "EBS": ".SW",
-  "SWX": ".SW",
+  EBS: ".SW",
+  SWX: ".SW",
   // Germany
-  "FWB": ".DE",
-  "IBIS": ".DE",
-  "XETRA": ".DE",
+  FWB: ".DE",
+  IBIS: ".DE",
+  XETRA: ".DE",
   // France
-  "SBF": ".PA",
+  SBF: ".PA",
   // Netherlands
-  "AEB": ".AS",
+  AEB: ".AS",
   // Italy
-  "BVME": ".MI",
+  BVME: ".MI",
   // Spain
-  "BM": ".MC",
+  BM: ".MC",
   // Hong Kong
-  "SEHK": ".HK",
+  SEHK: ".HK",
   // Japan
-  "TSE": ".T",
+  TSE: ".T",
   // Australia
-  "ASX": ".AX",
+  ASX: ".AX",
   // Singapore
-  "SGX": ".SI",
+  SGX: ".SI",
   // Norway
-  "OSE": ".OL",
+  OSE: ".OL",
   // Sweden
-  "SFB": ".ST",
+  SFB: ".ST",
   // Denmark
-  "KFB": ".CO",
+  KFB: ".CO",
   // Canada
-  "TSX": ".TO",
-  "VENTURE": ".V",
+  TSX: ".TO",
+  VENTURE: ".V",
   // US (no suffix needed)
-  "NYSE": "",
-  "NASDAQ": "",
-  "AMEX": "",
-  "ARCA": "",
-  "BATS": "",
-  "IEX": "",
+  NYSE: "",
+  NASDAQ: "",
+  AMEX: "",
+  ARCA: "",
+  BATS: "",
+  IEX: "",
 };
 
 /**
@@ -119,7 +119,7 @@ function addExchangeSuffix(symbol: string, exchange: string): string {
 export async function resolveTickersFromIBKR(
   data: ProcessedIBKRRow[],
   onProgress?: (current: number, total: number) => void,
-  searchFn?: SearchTickerFn
+  searchFn?: SearchTickerFn,
 ): Promise<ProcessedIBKRRow[]> {
   const resolved = [...data];
 
@@ -150,7 +150,7 @@ export async function resolveTickersFromIBKR(
     }
 
     debug.log(
-      `[Ticker Resolution] Resolving ${i + 1}/${total}: ${request.symbol} (ISIN: ${request.isin}, Exchange: ${request.exchange})`
+      `[Ticker Resolution] Resolving ${i + 1}/${total}: ${request.symbol} (ISIN: ${request.isin}, Exchange: ${request.exchange})`,
     );
 
     try {
@@ -166,7 +166,7 @@ export async function resolveTickersFromIBKR(
         const suffixedSymbol = addExchangeSuffix(request.symbol, request.exchange);
         if (suffixedSymbol !== request.symbol) {
           debug.log(
-            `[Ticker Resolution] Adding exchange suffix: ${request.symbol} -> ${suffixedSymbol}`
+            `[Ticker Resolution] Adding exchange suffix: ${request.symbol} -> ${suffixedSymbol}`,
           );
           result = {
             ...result,
@@ -180,7 +180,7 @@ export async function resolveTickersFromIBKR(
       resolutionMap.set(key, result);
 
       debug.log(
-        `[Ticker Resolution] ${request.symbol} -> ${result.yahooTicker} (confidence: ${result.confidence})`
+        `[Ticker Resolution] ${request.symbol} -> ${result.yahooTicker} (confidence: ${result.confidence})`,
       );
     } catch (error) {
       debug.error(`[Ticker Resolution] Error resolving ${request.symbol}:`, error);
@@ -261,4 +261,3 @@ export async function resolveTickersFromIBKR(
 
   return resolved;
 }
-

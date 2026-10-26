@@ -8,7 +8,12 @@
 import { debug } from "./debug-logger";
 import { getErrorMessage, formatDateToISO } from "./shared-utils";
 import type { Account, HostAPI, ActivityImport, SymbolSearchResult } from "@wealthfolio/addon-sdk";
-import type { AccountPreview, TransactionGroup, ActivityFingerprint, ConversionError } from "../types";
+import type {
+  AccountPreview,
+  TransactionGroup,
+  ActivityFingerprint,
+  ConversionError,
+} from "../types";
 import { preprocessIBKRData } from "./ibkr-preprocessor";
 import { resolveTickersFromIBKR } from "./ticker-resolution-service";
 import { convertToActivityImports } from "./activity-converter";
@@ -51,7 +56,7 @@ export interface FetchExistingResult {
 export async function refreshAndUpdateAccountPreviews(
   accountsApi: AccountsAPI | undefined,
   currentPreviews: AccountPreview[],
-  currentAccounts: Account[]
+  currentAccounts: Account[],
 ): Promise<{ freshAccounts: Account[]; updatedPreviews: AccountPreview[] }> {
   let freshAccounts = currentAccounts;
 
@@ -79,7 +84,7 @@ export async function processAndResolveData(
   parsedData: CsvRowData[],
   accountPreviews: AccountPreview[],
   searchFn: MarketSearchFn,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
 ): Promise<ProcessAndResolveResult> {
   // Preprocess the raw data
   const { processedData } = preprocessIBKRData(parsedData);
@@ -90,7 +95,16 @@ export async function processAndResolveData(
     ? async (query: string) => {
         const results = await searchFn(query);
         // Map SymbolSearchResult[] to TickerSearchResult[] by spreading to add index signature compatibility
-        return results.map((r) => ({ ...r } as { symbol: string; name?: string; exchange?: string; score?: number; [key: string]: unknown }));
+        return results.map(
+          (r) =>
+            ({ ...r }) as {
+              symbol: string;
+              name?: string;
+              exchange?: string;
+              score?: number;
+              [key: string]: unknown;
+            },
+        );
       }
     : undefined;
   const resolvedData = await resolveTickersFromIBKR(processedData, onProgress, adaptedSearchFn);
@@ -102,7 +116,7 @@ export async function processAndResolveData(
   const accountsByCurrency = new Map<string, Account>(
     accountPreviews
       .filter((p) => p.existingAccount)
-      .map((p) => [p.currency as string, p.existingAccount as Account])
+      .map((p) => [p.currency as string, p.existingAccount as Account]),
   );
 
   // Split FX conversions
@@ -112,7 +126,7 @@ export async function processAndResolveData(
   if (fxSplitResult.skippedConversions.length > 0) {
     debug.warn(
       `Skipped ${fxSplitResult.skippedConversions.length} FX conversion(s):`,
-      fxSplitResult.skippedConversions.map((s) => `${s.symbol}: ${s.reason}`)
+      fxSplitResult.skippedConversions.map((s) => `${s.symbol}: ${s.reason}`),
     );
   }
 
@@ -129,7 +143,7 @@ export async function processAndResolveData(
  */
 export async function fetchExistingActivitiesForDedup(
   activitiesApi: ActivitiesAPI | undefined,
-  accountPreviews: AccountPreview[]
+  accountPreviews: AccountPreview[],
 ): Promise<FetchExistingResult> {
   const allExisting: ActivityFingerprint[] = [];
   const failedAccounts: string[] = [];
@@ -186,7 +200,7 @@ export async function fetchExistingActivitiesForDedup(
  */
 export function deduplicateActivities(
   activities: ActivityImport[],
-  existingActivities: ActivityFingerprint[]
+  existingActivities: ActivityFingerprint[],
 ): ActivityImport[] {
   const { unique, duplicates } = filterDuplicateActivities(activities, existingActivities);
 
@@ -194,14 +208,11 @@ export function deduplicateActivities(
     debug.log(`[Dedup] Removed ${duplicates.length} duplicate activities`);
     debug.log(
       `[Dedup] By type:`,
-      duplicates.reduce<Record<string, number>>(
-        (acc, d) => {
-          const key = `${d.currency}-${d.activityType}`;
-          acc[key] = (acc[key] || 0) + 1;
-          return acc;
-        },
-        {}
-      )
+      duplicates.reduce<Record<string, number>>((acc, d) => {
+        const key = `${d.currency}-${d.activityType}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {}),
     );
   }
 
@@ -212,7 +223,7 @@ export function deduplicateActivities(
  * Group deduplicated activities by currency
  */
 export function groupActivitiesByCurrency(
-  activities: ActivityImport[]
+  activities: ActivityImport[],
 ): Map<string, ActivityImport[]> {
   const grouped = new Map<string, ActivityImport[]>();
 
@@ -220,7 +231,7 @@ export function groupActivitiesByCurrency(
     // Skip activities without currency - don't silently default
     if (!activity.currency) {
       debug.warn(
-        `Skipping activity without currency: ${activity.symbol || "unknown"} on ${activity.date || "unknown date"}`
+        `Skipping activity without currency: ${activity.symbol || "unknown"} on ${activity.date || "unknown date"}`,
       );
       continue;
     }
@@ -241,7 +252,7 @@ export function groupActivitiesByCurrency(
  */
 export function createTransactionGroups(
   accountPreviews: AccountPreview[],
-  groupedByCurrency: Map<string, ActivityImport[]>
+  groupedByCurrency: Map<string, ActivityImport[]>,
 ): TransactionGroup[] {
   return accountPreviews.map((preview) => {
     const transactions = groupedByCurrency.get(preview.currency) || [];
@@ -252,19 +263,19 @@ export function createTransactionGroups(
       ibkrLabel: preview.ibkrLabel,
       transactions,
       summary: {
-        trades: transactions.filter(
-          (t) => t.activityType === "BUY" || t.activityType === "SELL"
-        ).length,
+        trades: transactions.filter((t) => t.activityType === "BUY" || t.activityType === "SELL")
+          .length,
         dividends: transactions.filter((t) => t.activityType === "DIVIDEND").length,
         deposits: transactions.filter(
-          (t) => t.activityType === "DEPOSIT" || t.activityType === "TRANSFER_IN"
+          (t) => t.activityType === "DEPOSIT" || t.activityType === "TRANSFER_IN",
         ).length,
         withdrawals: transactions.filter(
-          (t) => t.activityType === "WITHDRAWAL" || t.activityType === "TRANSFER_OUT"
+          (t) => t.activityType === "WITHDRAWAL" || t.activityType === "TRANSFER_OUT",
         ).length,
-        fees: transactions.filter((t) => t.activityType === "FEE" || t.activityType === "TAX").length,
+        fees: transactions.filter((t) => t.activityType === "FEE" || t.activityType === "TAX")
+          .length,
         other: transactions.filter(
-          (t) => !t.activityType || (t.activityType as string) === "UNKNOWN"
+          (t) => !t.activityType || (t.activityType as string) === "UNKNOWN",
         ).length,
       },
     };

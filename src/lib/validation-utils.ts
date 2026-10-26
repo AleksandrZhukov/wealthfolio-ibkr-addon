@@ -36,4 +36,3 @@ export function normalizeNumericValue(value: string | undefined): number | undef
   // Return undefined if parsing resulted in NaN
   return isNaN(parsed) ? undefined : parsed;
 }
-

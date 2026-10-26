@@ -11,7 +11,7 @@ import { accountNamePrefix } from "./ibkr-accounts";
 export function generateAccountNames(
   groupName: string,
   currencies: string[],
-  ibkrLabel?: string
+  ibkrLabel?: string,
 ): Array<{ currency: string; name: string; group: string }> {
   return currencies.map((currency) => ({
     currency,

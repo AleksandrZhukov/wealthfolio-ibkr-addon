@@ -13,7 +13,10 @@ async function readFileWithTimeout(file: File, timeoutMs: number): Promise<strin
   return Promise.race([
     file.text(),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`File read timed out after ${timeoutMs / 1000}s`)), timeoutMs)
+      setTimeout(
+        () => reject(new Error(`File read timed out after ${timeoutMs / 1000}s`)),
+        timeoutMs,
+      ),
     ),
   ]);
 }
@@ -31,7 +34,7 @@ function validateFileInputs(files: File[]): string | null {
       const sizeMB = Math.round(file.size / (1024 * 1024));
       return `File "${file.name}" is too large (${sizeMB}MB, maximum 50MB)`;
     }
-    if (!file.name.toLowerCase().endsWith('.csv')) {
+    if (!file.name.toLowerCase().endsWith(".csv")) {
       return `File "${file.name}" is not a CSV file`;
     }
   }
@@ -90,12 +93,14 @@ export function useMultiCsvParser() {
           ...initialState,
           selectedFiles: files,
           isParsing: false,
-          errors: [{
-            type: "FieldMismatch",
-            code: "TooFewFields",
-            message: validationError,
-            row: 0,
-          }],
+          errors: [
+            {
+              type: "FieldMismatch",
+              code: "TooFewFields",
+              message: validationError,
+              row: 0,
+            },
+          ],
         });
         return;
       }
@@ -119,10 +124,10 @@ export function useMultiCsvParser() {
               return {
                 file,
                 text: null,
-                error: getErrorMessage(readError)
+                error: getErrorMessage(readError),
               };
             }
-          })
+          }),
         );
 
         // Separate successful reads from errors
@@ -266,7 +271,9 @@ export function useMultiCsvParser() {
               // This ensures correct column-to-value mapping regardless of header differences
               // Track if row has fewer columns than headers (potential data loss)
               if (rawRow.length < fileHeaders.length) {
-                debug.warn(`[CSV Parser] Row ${lineNumber} in ${file.name} has ${rawRow.length} columns but expected ${fileHeaders.length}`);
+                debug.warn(
+                  `[CSV Parser] Row ${lineNumber} in ${file.name} has ${rawRow.length} columns but expected ${fileHeaders.length}`,
+                );
               }
               fileHeaders.forEach((header, index) => {
                 const value = rawRow[index];
@@ -299,14 +306,17 @@ export function useMultiCsvParser() {
           const genericErrorMsg = "No valid data found in any of the selected files.";
           debug.error(genericErrorMsg);
           // Prioritize specific file errors over generic message so users see actual causes first
-          const errorsToShow = allErrors.length > 0
-            ? allErrors
-            : [{
-                type: "Delimiter" as const,
-                code: "NoValidData" as const,
-                message: genericErrorMsg,
-                row: 0,
-              }];
+          const errorsToShow =
+            allErrors.length > 0
+              ? allErrors
+              : [
+                  {
+                    type: "Delimiter" as const,
+                    code: "NoValidData" as const,
+                    message: genericErrorMsg,
+                    row: 0,
+                  },
+                ];
           if (!isMountedRef.current) return;
           setState({
             ...initialState,
@@ -318,9 +328,7 @@ export function useMultiCsvParser() {
         }
 
         // Successful parsing
-        debug.log(
-          `Successfully parsed ${files.length} files with ${mergedData.length} total rows`
-        );
+        debug.log(`Successfully parsed ${files.length} files with ${mergedData.length} total rows`);
 
         if (!isMountedRef.current) return;
         setState({
@@ -354,7 +362,7 @@ export function useMultiCsvParser() {
     // Empty dependency array is intentional: parseMultipleCsvFiles only depends on
     // setState which is stable, and constants (MAX_FILE_SIZE_BYTES, etc.) which never change.
     // This prevents unnecessary recreation of the callback and potential stale closures.
-    []
+    [],
   );
 
   // Prepare errors for display (show file-level errors first)

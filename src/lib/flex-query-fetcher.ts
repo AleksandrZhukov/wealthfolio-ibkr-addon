@@ -12,7 +12,14 @@
  */
 
 import type { NetworkAPI, NetworkRequest } from "@wealthfolio/addon-sdk";
-import { FLEX_QUERY_INITIAL_DELAY_MS, FLEX_QUERY_MAX_DELAY_MS, FLEX_QUERY_ABSOLUTE_TIMEOUT_MS, MIN_TOKEN_LENGTH, MAX_TOKEN_LENGTH, MAX_QUERY_ID_LENGTH } from "./constants";
+import {
+  FLEX_QUERY_INITIAL_DELAY_MS,
+  FLEX_QUERY_MAX_DELAY_MS,
+  FLEX_QUERY_ABSOLUTE_TIMEOUT_MS,
+  MIN_TOKEN_LENGTH,
+  MAX_TOKEN_LENGTH,
+  MAX_QUERY_ID_LENGTH,
+} from "./constants";
 
 export interface FlexQueryConfig {
   token: string;
@@ -32,10 +39,16 @@ export function validateFlexToken(token: string): { valid: boolean; error?: stri
   }
   const trimmed = token.trim();
   if (trimmed.length < MIN_TOKEN_LENGTH) {
-    return { valid: false, error: `Token appears too short (minimum ${MIN_TOKEN_LENGTH} characters)` };
+    return {
+      valid: false,
+      error: `Token appears too short (minimum ${MIN_TOKEN_LENGTH} characters)`,
+    };
   }
   if (trimmed.length > MAX_TOKEN_LENGTH) {
-    return { valid: false, error: `Token appears too long (maximum ${MAX_TOKEN_LENGTH} characters)` };
+    return {
+      valid: false,
+      error: `Token appears too long (maximum ${MAX_TOKEN_LENGTH} characters)`,
+    };
   }
   // IBKR tokens are alphanumeric
   if (!/^[a-zA-Z0-9]+$/.test(trimmed)) {
@@ -57,7 +70,10 @@ export function validateQueryId(queryId: string): { valid: boolean; error?: stri
     return { valid: false, error: "Query ID should be numeric" };
   }
   if (trimmed.length > MAX_QUERY_ID_LENGTH) {
-    return { valid: false, error: `Query ID appears too long (maximum ${MAX_QUERY_ID_LENGTH} characters)` };
+    return {
+      valid: false,
+      error: `Query ID appears too long (maximum ${MAX_QUERY_ID_LENGTH} characters)`,
+    };
   }
   return { valid: true };
 }
@@ -96,7 +112,7 @@ export interface HttpClient {
       headers?: Record<string, string>;
       body?: string;
       timeout_ms?: number;
-    }
+    },
   ): Promise<{
     status: number;
     status_text: string;
@@ -185,7 +201,7 @@ export function setHttpClient(client: HttpClient): void {
 function getHttpClient(): HttpClient {
   if (!httpClient) {
     throw new Error(
-      "HTTP client not set. Call setHttpClient(createNetworkHttpClient(ctx.api.network)) before using Flex Query functions."
+      "HTTP client not set. Call setHttpClient(createNetworkHttpClient(ctx.api.network)) before using Flex Query functions.",
     );
   }
   return httpClient;
@@ -230,8 +246,7 @@ function isValidIBKRUrl(url: string | undefined): boolean {
     // Only allow HTTPS URLs from IBKR domains
     return (
       parsed.protocol === "https:" &&
-      (parsed.hostname.endsWith(".interactivebrokers.com") ||
-        parsed.hostname.endsWith(".ibkr.com"))
+      (parsed.hostname.endsWith(".interactivebrokers.com") || parsed.hostname.endsWith(".ibkr.com"))
     );
   } catch {
     return false;
@@ -279,10 +294,9 @@ function parseFlexResponse(xml: string): {
  * @param config Flex Query configuration with token and query ID
  * @returns Promise resolving to request result with reference code or error
  */
-export async function sendFlexRequest(
-  config: FlexQueryConfig
-): Promise<FlexQueryRequestResult> {
-  const range = config.fromDate && config.toDate ? `&fd=${config.fromDate}&td=${config.toDate}` : "";
+export async function sendFlexRequest(config: FlexQueryConfig): Promise<FlexQueryRequestResult> {
+  const range =
+    config.fromDate && config.toDate ? `&fd=${config.fromDate}&td=${config.toDate}` : "";
   const url = `${FLEX_API_BASE}/SendRequest?t=${encodeURIComponent(config.token)}&q=${encodeURIComponent(config.queryId)}&v=3${range}`;
 
   try {
@@ -341,7 +355,7 @@ export async function sendFlexRequest(
  */
 export async function getFlexStatement(
   config: FlexQueryConfig,
-  referenceCode: string
+  referenceCode: string,
 ): Promise<FlexQueryStatementResult> {
   const url = `${FLEX_API_BASE}/GetStatement?t=${encodeURIComponent(config.token)}&q=${encodeURIComponent(referenceCode)}&v=3`;
 
@@ -439,7 +453,7 @@ export async function fetchFlexQuery(
     absoluteTimeoutMs?: number;
     sendRetryDelayMs?: number;
     onProgress?: (message: string) => void;
-  } = {}
+  } = {},
 ): Promise<FlexQueryResult> {
   const {
     maxRetries = 10,
@@ -457,11 +471,15 @@ export async function fetchFlexQuery(
   let requestResult = await sendFlexRequest(config);
   for (
     let attempt = 1;
-    attempt < SEND_MAX_ATTEMPTS && requestResult.errorCode !== undefined && SEND_RETRYABLE_CODES.has(requestResult.errorCode);
+    attempt < SEND_MAX_ATTEMPTS &&
+    requestResult.errorCode !== undefined &&
+    SEND_RETRYABLE_CODES.has(requestResult.errorCode);
     attempt++
   ) {
     const wait = sendRetryDelayMs * attempt;
-    onProgress?.(`IBKR busy (${requestResult.errorCode}), retrying in ${Math.round(wait / 1000)}s...`);
+    onProgress?.(
+      `IBKR busy (${requestResult.errorCode}), retrying in ${Math.round(wait / 1000)}s...`,
+    );
     await delay(wait);
     requestResult = await sendFlexRequest(config);
   }
@@ -492,7 +510,9 @@ export async function fetchFlexQuery(
     }
 
     const remainingTime = absoluteTimeoutMs - elapsed;
-    onProgress?.(`Waiting for statement (attempt ${retries + 1}/${maxRetries}, ${Math.round(remainingTime / 1000)}s remaining)...`);
+    onProgress?.(
+      `Waiting for statement (attempt ${retries + 1}/${maxRetries}, ${Math.round(remainingTime / 1000)}s remaining)...`,
+    );
     await delay(currentDelay);
 
     const statementResult = await getFlexStatement(config, requestResult.referenceCode);
@@ -550,7 +570,9 @@ export function splitFlexDateRange(from: Date, to: Date): { fromDate: string; to
   let start = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
   const end = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate()));
   while (start <= end) {
-    const chunkEnd = new Date(Math.min(start.getTime() + (MAX_RANGE_DAYS - 1) * dayMs, end.getTime()));
+    const chunkEnd = new Date(
+      Math.min(start.getTime() + (MAX_RANGE_DAYS - 1) * dayMs, end.getTime()),
+    );
     ranges.push({ fromDate: toFlexDate(start), toDate: toFlexDate(chunkEnd) });
     start = new Date(chunkEnd.getTime() + dayMs);
   }
@@ -565,7 +587,7 @@ export async function fetchFlexQueryRange(
   config: FlexQueryConfig,
   from: Date,
   to: Date,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
 ): Promise<{ success: boolean; csvs: string[]; error?: string }> {
   const ranges = splitFlexDateRange(from, to);
   const csvs: string[] = [];
@@ -574,10 +596,14 @@ export async function fetchFlexQueryRange(
     const label = `${range.fromDate}–${range.toDate} (${i + 1}/${ranges.length})`;
     const result = await fetchFlexQuery(
       { ...config, ...range },
-      { onProgress: (msg) => onProgress?.(`${label}: ${msg}`) }
+      { onProgress: (msg) => onProgress?.(`${label}: ${msg}`) },
     );
     if (!result.success || result.csv === undefined) {
-      return { success: false, csvs, error: `${label}: ${result.error ?? "Failed to fetch statement"}` };
+      return {
+        success: false,
+        csvs,
+        error: `${label}: ${result.error ?? "Failed to fetch statement"}`,
+      };
     }
     csvs.push(result.csv);
   }
@@ -594,7 +620,7 @@ export async function fetchFlexQueryRange(
  * @returns Promise resolving to connection test result
  */
 export async function testFlexConnection(
-  config: FlexQueryConfig
+  config: FlexQueryConfig,
 ): Promise<{ success: boolean; message: string }> {
   const result = await sendFlexRequest(config);
 

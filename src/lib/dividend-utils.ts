@@ -29,7 +29,9 @@ export interface DividendInfo {
  * @param activityDescription - The IBKR activity description string
  * @returns Parsed dividend info or null if not parseable
  */
-export function parseDividendInfo(activityDescription: string | undefined | null): DividendInfo | null {
+export function parseDividendInfo(
+  activityDescription: string | undefined | null,
+): DividendInfo | null {
   if (!activityDescription) return null;
 
   // Normalize whitespace (handle multiple spaces, tabs, etc.)
@@ -98,7 +100,9 @@ function validateAndCreateResult(currency: string, amountStr: string): DividendI
  * @param activityDescription - The IBKR activity description string
  * @returns Per-share rate or null if not parseable
  */
-export function extractDividendPerShare(activityDescription: string | undefined | null): number | null {
+export function extractDividendPerShare(
+  activityDescription: string | undefined | null,
+): number | null {
   const info = parseDividendInfo(activityDescription);
   return info?.perShare ?? null;
 }

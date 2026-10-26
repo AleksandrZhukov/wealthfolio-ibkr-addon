@@ -76,11 +76,7 @@ describe("Import Orchestrator", () => {
         getAll: vi.fn().mockRejectedValue(new Error("Network error")),
       };
 
-      const result = await refreshAndUpdateAccountPreviews(
-        mockApi,
-        [mockPreview],
-        cachedAccounts
-      );
+      const result = await refreshAndUpdateAccountPreviews(mockApi, [mockPreview], cachedAccounts);
 
       expect(result.freshAccounts).toEqual(cachedAccounts);
       expect(console.warn).toHaveBeenCalled();
@@ -92,7 +88,7 @@ describe("Import Orchestrator", () => {
       const result = await refreshAndUpdateAccountPreviews(
         undefined,
         [mockPreview],
-        cachedAccounts
+        cachedAccounts,
       );
 
       expect(result.freshAccounts).toEqual(cachedAccounts);
@@ -170,9 +166,7 @@ describe("Import Orchestrator", () => {
     it("should skip previews without existing accounts", async () => {
       const mockApi = { getAll: vi.fn() };
 
-      const previews: AccountPreview[] = [
-        { name: "New Account", currency: "EUR", group: "Test" },
-      ];
+      const previews: AccountPreview[] = [{ name: "New Account", currency: "EUR", group: "Test" }];
 
       const result = await fetchExistingActivitiesForDedup(mockApi, previews);
 
@@ -183,18 +177,37 @@ describe("Import Orchestrator", () => {
 
     it("should continue fetching if one account fails and report partial failure", async () => {
       const activities = [
-        { date: "2024-01-15", assetSymbol: "GOOG", activityType: "BUY", quantity: 1, unitPrice: 100, fee: 0, currency: "USD" },
+        {
+          date: "2024-01-15",
+          assetSymbol: "GOOG",
+          activityType: "BUY",
+          quantity: 1,
+          unitPrice: 100,
+          fee: 0,
+          currency: "USD",
+        },
       ];
 
       const mockApi = {
-        getAll: vi.fn()
+        getAll: vi
+          .fn()
           .mockRejectedValueOnce(new Error("Account 1 error"))
           .mockResolvedValueOnce(activities),
       };
 
       const previews: AccountPreview[] = [
-        { name: "USD Account", currency: "USD", group: "Test", existingAccount: { ...mockAccount, id: "acc-1", name: "USD Account" } },
-        { name: "EUR Account", currency: "EUR", group: "Test", existingAccount: { ...mockAccount, id: "acc-2", name: "EUR Account" } },
+        {
+          name: "USD Account",
+          currency: "USD",
+          group: "Test",
+          existingAccount: { ...mockAccount, id: "acc-1", name: "USD Account" },
+        },
+        {
+          name: "EUR Account",
+          currency: "EUR",
+          group: "Test",
+          existingAccount: { ...mockAccount, id: "acc-2", name: "EUR Account" },
+        },
       ];
 
       const result = await fetchExistingActivitiesForDedup(mockApi, previews);
@@ -231,7 +244,9 @@ describe("Import Orchestrator", () => {
         },
       };
 
-      const result = await fetchExistingActivitiesForDedup(mockApi, [trickyPreview as AccountPreview]);
+      const result = await fetchExistingActivitiesForDedup(mockApi, [
+        trickyPreview as AccountPreview,
+      ]);
 
       // The defensive guard should skip this preview
       expect(result.activities).toEqual([]);
@@ -298,7 +313,13 @@ describe("Import Orchestrator", () => {
 
   describe("deduplicateActivities", () => {
     // Helper to create ActivityImport with required fields
-    const createActivity = (overrides: Partial<ActivityImport> & { date: string; symbol: string; activityType: ActivityImport['activityType'] }): ActivityImport => ({
+    const createActivity = (
+      overrides: Partial<ActivityImport> & {
+        date: string;
+        symbol: string;
+        activityType: ActivityImport["activityType"];
+      },
+    ): ActivityImport => ({
       accountId: "test-account",
       isValid: true,
       isDraft: false,
@@ -311,12 +332,34 @@ describe("Import Orchestrator", () => {
 
     it("should remove duplicate activities", () => {
       const activities: ActivityImport[] = [
-        createActivity({ date: "2024-01-15", symbol: "AAPL", activityType: "BUY", quantity: 10, unitPrice: 150, fee: 1 }),
-        createActivity({ date: "2024-01-16", symbol: "MSFT", activityType: "BUY", quantity: 5, unitPrice: 200, fee: 1 }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150,
+          fee: 1,
+        }),
+        createActivity({
+          date: "2024-01-16",
+          symbol: "MSFT",
+          activityType: "BUY",
+          quantity: 5,
+          unitPrice: 200,
+          fee: 1,
+        }),
       ];
 
       const existing: ActivityFingerprint[] = [
-        { activityDate: "2024-01-15", assetId: "AAPL", activityType: "BUY", quantity: 10, unitPrice: 150, fee: 1, currency: "USD" },
+        {
+          activityDate: "2024-01-15",
+          assetId: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150,
+          fee: 1,
+          currency: "USD",
+        },
       ];
 
       const result = deduplicateActivities(activities, existing);
@@ -339,7 +382,13 @@ describe("Import Orchestrator", () => {
 
   describe("groupActivitiesByCurrency", () => {
     // Helper to create ActivityImport with required fields
-    const createActivity = (overrides: Partial<ActivityImport> & { date: string; symbol: string; activityType: ActivityImport['activityType'] }): ActivityImport => ({
+    const createActivity = (
+      overrides: Partial<ActivityImport> & {
+        date: string;
+        symbol: string;
+        activityType: ActivityImport["activityType"];
+      },
+    ): ActivityImport => ({
       accountId: "test-account",
       isValid: true,
       isDraft: false,
@@ -352,9 +401,33 @@ describe("Import Orchestrator", () => {
 
     it("should group activities by currency", () => {
       const activities: ActivityImport[] = [
-        createActivity({ date: "2024-01-15", symbol: "AAPL", activityType: "BUY", quantity: 10, unitPrice: 150, fee: 1, currency: "USD" }),
-        createActivity({ date: "2024-01-15", symbol: "HSBA", activityType: "BUY", quantity: 20, unitPrice: 7, fee: 1, currency: "GBP" }),
-        createActivity({ date: "2024-01-16", symbol: "MSFT", activityType: "BUY", quantity: 5, unitPrice: 200, fee: 1, currency: "USD" }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150,
+          fee: 1,
+          currency: "USD",
+        }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "HSBA",
+          activityType: "BUY",
+          quantity: 20,
+          unitPrice: 7,
+          fee: 1,
+          currency: "GBP",
+        }),
+        createActivity({
+          date: "2024-01-16",
+          symbol: "MSFT",
+          activityType: "BUY",
+          quantity: 5,
+          unitPrice: 200,
+          fee: 1,
+          currency: "USD",
+        }),
       ];
 
       const result = groupActivitiesByCurrency(activities);
@@ -365,7 +438,12 @@ describe("Import Orchestrator", () => {
 
     it("should skip activities with missing currency instead of defaulting", () => {
       const activities: ActivityImport[] = [
-        createActivity({ date: "2024-01-15", symbol: "XYZ", activityType: "BUY", currency: undefined as unknown as string }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "XYZ",
+          activityType: "BUY",
+          currency: undefined as unknown as string,
+        }),
       ];
 
       const result = groupActivitiesByCurrency(activities);
@@ -397,7 +475,13 @@ describe("Import Orchestrator", () => {
 
   describe("createTransactionGroups", () => {
     // Helper to create ActivityImport with required fields
-    const createActivity = (overrides: Partial<ActivityImport> & { date: string; symbol: string; activityType: ActivityImport['activityType'] }): ActivityImport => ({
+    const createActivity = (
+      overrides: Partial<ActivityImport> & {
+        date: string;
+        symbol: string;
+        activityType: ActivityImport["activityType"];
+      },
+    ): ActivityImport => ({
       accountId: "test-account",
       isValid: true,
       isDraft: false,
@@ -416,7 +500,14 @@ describe("Import Orchestrator", () => {
     it("should create transaction groups for each preview", () => {
       const grouped = new Map<string, ActivityImport[]>();
       grouped.set("USD", [
-        createActivity({ date: "2024-01-15", symbol: "AAPL", activityType: "BUY", quantity: 10, unitPrice: 150, fee: 1 }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150,
+          fee: 1,
+        }),
       ]);
       grouped.set("EUR", []);
 
@@ -433,14 +524,65 @@ describe("Import Orchestrator", () => {
     it("should calculate summary correctly", () => {
       const grouped = new Map<string, ActivityImport[]>();
       grouped.set("USD", [
-        createActivity({ date: "2024-01-15", symbol: "AAPL", activityType: "BUY", quantity: 10, unitPrice: 150, fee: 1 }),
-        createActivity({ date: "2024-01-16", symbol: "AAPL", activityType: "SELL", quantity: 5, unitPrice: 160, fee: 1 }),
-        createActivity({ date: "2024-01-17", symbol: "AAPL", activityType: "DIVIDEND", quantity: 10, unitPrice: 0.24 }),
-        createActivity({ date: "2024-01-18", symbol: "$CASH-USD", activityType: "DEPOSIT", quantity: 1000, unitPrice: 1 }),
-        createActivity({ date: "2024-01-19", symbol: "$CASH-USD", activityType: "WITHDRAWAL", quantity: 500, unitPrice: 1 }),
-        createActivity({ date: "2024-01-20", symbol: "AAPL", activityType: "FEE", quantity: 0, unitPrice: 0, fee: 10 }),
-        createActivity({ date: "2024-01-21", symbol: "$CASH-USD", activityType: "TRANSFER_IN", quantity: 100, unitPrice: 1 }),
-        createActivity({ date: "2024-01-22", symbol: "$CASH-USD", activityType: "TRANSFER_OUT", quantity: 50, unitPrice: 1 }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150,
+          fee: 1,
+        }),
+        createActivity({
+          date: "2024-01-16",
+          symbol: "AAPL",
+          activityType: "SELL",
+          quantity: 5,
+          unitPrice: 160,
+          fee: 1,
+        }),
+        createActivity({
+          date: "2024-01-17",
+          symbol: "AAPL",
+          activityType: "DIVIDEND",
+          quantity: 10,
+          unitPrice: 0.24,
+        }),
+        createActivity({
+          date: "2024-01-18",
+          symbol: "$CASH-USD",
+          activityType: "DEPOSIT",
+          quantity: 1000,
+          unitPrice: 1,
+        }),
+        createActivity({
+          date: "2024-01-19",
+          symbol: "$CASH-USD",
+          activityType: "WITHDRAWAL",
+          quantity: 500,
+          unitPrice: 1,
+        }),
+        createActivity({
+          date: "2024-01-20",
+          symbol: "AAPL",
+          activityType: "FEE",
+          quantity: 0,
+          unitPrice: 0,
+          fee: 10,
+        }),
+        createActivity({
+          date: "2024-01-21",
+          symbol: "$CASH-USD",
+          activityType: "TRANSFER_IN",
+          quantity: 100,
+          unitPrice: 1,
+        }),
+        createActivity({
+          date: "2024-01-22",
+          symbol: "$CASH-USD",
+          activityType: "TRANSFER_OUT",
+          quantity: 50,
+          unitPrice: 1,
+        }),
       ]);
 
       const result = createTransactionGroups([basePreviews[0]], grouped);
@@ -466,7 +608,11 @@ describe("Import Orchestrator", () => {
       const grouped = new Map<string, ActivityImport[]>();
       grouped.set("USD", [
         // Using "UNKNOWN" cast to test the "other" category counting
-        createActivity({ date: "2024-01-15", symbol: "XYZ", activityType: "UNKNOWN" as ActivityImport["activityType"] }),
+        createActivity({
+          date: "2024-01-15",
+          symbol: "XYZ",
+          activityType: "UNKNOWN" as ActivityImport["activityType"],
+        }),
       ]);
 
       const result = createTransactionGroups([basePreviews[0]], grouped);

@@ -16,10 +16,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -38,10 +38,10 @@ describe("Activity Deduplicator", () => {
         symbol: "aapl",
         activityType: "buy" as ActivityImport["activityType"],
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "usd",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -53,10 +53,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -72,10 +72,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -143,10 +143,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -158,16 +158,18 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "SELL",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
       };
 
-      expect(createActivityFingerprint(buyActivity)).not.toBe(createActivityFingerprint(sellActivity));
+      expect(createActivityFingerprint(buyActivity)).not.toBe(
+        createActivityFingerprint(sellActivity),
+      );
     });
 
     it("should differentiate between different dates", () => {
@@ -177,10 +179,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -192,10 +194,10 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
@@ -212,10 +214,10 @@ describe("Activity Deduplicator", () => {
         assetId: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
       };
 
       const newActivity: ActivityImport = {
@@ -224,16 +226,18 @@ describe("Activity Deduplicator", () => {
         symbol: "AAPL",
         activityType: "BUY",
         quantity: 10,
-        unitPrice: 150.50,
+        unitPrice: 150.5,
         currency: "USD",
-        fee: 1.00,
-        amount: 1505.00,
+        fee: 1.0,
+        amount: 1505.0,
         comment: "",
         isDraft: false,
         isValid: true,
       };
 
-      expect(createExistingActivityFingerprint(existingActivity)).toBe(createActivityFingerprint(newActivity));
+      expect(createExistingActivityFingerprint(existingActivity)).toBe(
+        createActivityFingerprint(newActivity),
+      );
     });
   });
 
@@ -245,10 +249,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -259,10 +263,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -273,10 +277,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -301,10 +305,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -315,10 +319,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "Duplicate in batch",
           isDraft: false,
           isValid: true,
@@ -342,10 +346,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -356,10 +360,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -379,20 +383,20 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
         {
           activityDate: "2024-01-16",
           assetId: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
         },
       ];
 
@@ -403,10 +407,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -417,10 +421,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -440,10 +444,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -464,10 +468,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -480,10 +484,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -494,10 +498,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -531,10 +535,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -545,10 +549,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -559,10 +563,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 20, // Different quantity
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 3010.00,
+          fee: 1.0,
+          amount: 3010.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -587,7 +591,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.24,
           currency: "USD",
           fee: 0,
-          amount: 24.00,
+          amount: 24.0,
         },
       ];
 
@@ -601,7 +605,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.24,
           currency: "USD",
           fee: 0,
-          amount: 24.00,
+          amount: 24.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -615,7 +619,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.036,
           currency: "USD",
           fee: 0,
-          amount: 3.60,
+          amount: 3.6,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -698,10 +702,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
           fee: 1.005,
-          amount: 1505.00,
+          amount: 1505.0,
         },
       ];
 
@@ -712,10 +716,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
           fee: 1.0050001, // Very small floating point difference
-          amount: 1505.00,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -736,10 +740,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -750,10 +754,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "GBP", // Different currency
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -774,20 +778,20 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
         {
           activityDate: "2024-01-16",
           assetId: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
         },
       ];
 
@@ -799,10 +803,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "From CSV",
           isDraft: false,
           isValid: true,
@@ -813,10 +817,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "From CSV",
           isDraft: false,
           isValid: true,
@@ -827,10 +831,10 @@ describe("Activity Deduplicator", () => {
           symbol: "GOOGL",
           activityType: "BUY",
           quantity: 3,
-          unitPrice: 140.00,
+          unitPrice: 140.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 420.00,
+          fee: 1.0,
+          amount: 420.0,
           comment: "New from CSV",
           isDraft: false,
           isValid: true,
@@ -839,7 +843,7 @@ describe("Activity Deduplicator", () => {
 
       const { unique, duplicates } = filterDuplicateActivities(
         newActivitiesFromCSV,
-        existingActivitiesFromFlexQuery
+        existingActivitiesFromFlexQuery,
       );
 
       expect(duplicates.length).toBe(2);
@@ -854,10 +858,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -869,17 +873,20 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(sameCSVImportedAgain, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        sameCSVImportedAgain,
+        existingActivities,
+      );
 
       expect(duplicates.length).toBe(1);
       expect(unique.length).toBe(0);
@@ -896,10 +903,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -910,10 +917,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -928,10 +935,10 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "BUY",
           quantity: 5,
-          unitPrice: 380.00,
+          unitPrice: 380.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 1900.00,
+          fee: 1.0,
+          amount: 1900.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -942,10 +949,10 @@ describe("Activity Deduplicator", () => {
           symbol: "GOOGL",
           activityType: "BUY",
           quantity: 3,
-          unitPrice: 140.00,
+          unitPrice: 140.0,
           currency: "USD",
-          fee: 1.00,
-          amount: 420.00,
+          fee: 1.0,
+          amount: 420.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -955,7 +962,10 @@ describe("Activity Deduplicator", () => {
       // Combine both CSVs
       const combinedActivities = [...csv1Activities, ...csv2Activities];
 
-      const { unique, duplicates } = filterDuplicateActivities(combinedActivities, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        combinedActivities,
+        existingActivities,
+      );
 
       // Should dedupe within the batch
       expect(unique.length).toBe(3); // AAPL, MSFT, GOOGL
@@ -972,10 +982,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -986,17 +996,20 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(newActivities, existingActivities as any);
+      const { unique, duplicates } = filterDuplicateActivities(
+        newActivities,
+        existingActivities as any,
+      );
 
       expect(duplicates.length).toBe(1);
       expect(unique.length).toBe(0);
@@ -1009,10 +1022,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -1023,17 +1036,20 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(newActivities, existingActivities as any);
+      const { unique, duplicates } = filterDuplicateActivities(
+        newActivities,
+        existingActivities as any,
+      );
 
       // Should match because both normalize to 2024-01-15
       expect(duplicates.length).toBe(1);
@@ -1050,10 +1066,10 @@ describe("Activity Deduplicator", () => {
           assetId: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -1064,10 +1080,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL",
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -1087,10 +1103,10 @@ describe("Activity Deduplicator", () => {
           assetId: "aapl", // lowercase from one source
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
         },
       ];
 
@@ -1101,10 +1117,10 @@ describe("Activity Deduplicator", () => {
           symbol: "AAPL", // uppercase from another source
           activityType: "BUY",
           quantity: 10,
-          unitPrice: 150.50,
+          unitPrice: 150.5,
           currency: "USD",
-          fee: 1.00,
-          amount: 1505.00,
+          fee: 1.0,
+          amount: 1505.0,
           comment: "",
           isDraft: false,
           isValid: true,
@@ -1133,7 +1149,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.15,
           currency: "USD",
           fee: 0,
-          amount: 15.00,
+          amount: 15.0,
           comment: "F(US3453708600) Cash Dividend USD 0.15 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1147,19 +1163,22 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.15,
           currency: "USD",
           fee: 0,
-          amount: 15.00,
+          amount: 15.0,
           comment: "F(US3453708600) Cash Dividend USD 0.15 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(activitiesFromSingleCSV, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        activitiesFromSingleCSV,
+        existingActivities,
+      );
 
       expect(unique.length).toBe(1);
       expect(duplicates.length).toBe(1);
       expect(unique[0].symbol).toBe("F");
-      expect(unique[0].amount).toBe(15.00);
+      expect(unique[0].amount).toBe(15.0);
     });
 
     it("should deduplicate dividends across two overlapping CSV files", () => {
@@ -1178,7 +1197,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.15,
           currency: "USD",
           fee: 0,
-          amount: 13.50,
+          amount: 13.5,
           comment: "F(US3453708600) Cash Dividend USD 0.15 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1193,7 +1212,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.15,
           currency: "USD",
           fee: 0,
-          amount: 13.50,
+          amount: 13.5,
           comment: "F(US3453708600) Cash Dividend USD 0.15 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1208,18 +1227,21 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.264,
           currency: "USD",
           fee: 0,
-          amount: 39.60,
+          amount: 39.6,
           comment: "O(US7561091049) Cash Dividend USD 0.264 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(combinedActivities, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        combinedActivities,
+        existingActivities,
+      );
 
       expect(unique.length).toBe(2); // F once, O once
       expect(duplicates.length).toBe(1); // Duplicate F
-      expect(unique.map(u => u.symbol).sort()).toEqual(["F", "O"]);
+      expect(unique.map((u) => u.symbol).sort()).toEqual(["F", "O"]);
     });
 
     it("should NOT deduplicate different dividends on same date for same symbol", () => {
@@ -1236,7 +1258,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.75,
           currency: "USD",
           fee: 0,
-          amount: 37.50,
+          amount: 37.5,
           comment: "MSFT(US5949181045) Cash Dividend USD 0.75 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1247,17 +1269,20 @@ describe("Activity Deduplicator", () => {
           symbol: "MSFT",
           activityType: "DIVIDEND",
           quantity: 50,
-          unitPrice: 0.10,
+          unitPrice: 0.1,
           currency: "USD",
           fee: 0,
-          amount: 5.00,
+          amount: 5.0,
           comment: "MSFT(US5949181045) Cash Dividend USD 0.10 per Share (Special Dividend)",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(activitiesWithMultipleDividends, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        activitiesWithMultipleDividends,
+        existingActivities,
+      );
 
       // Both should be kept - different per-share rates
       expect(unique.length).toBe(2);
@@ -1276,7 +1301,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.264,
           currency: "USD",
           fee: 0,
-          amount: 26.40, // Backend calculated amount
+          amount: 26.4, // Backend calculated amount
           comment: "O(US7561091049) Cash Dividend USD 0.264 per Share (Ordinary Dividend)",
         },
       ];
@@ -1291,7 +1316,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.264,
           currency: "USD",
           fee: 0,
-          amount: 39.60, // Different amount due to different position
+          amount: 39.6, // Different amount due to different position
           comment: "O(US7561091049) Cash Dividend USD 0.264 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1316,10 +1341,10 @@ describe("Activity Deduplicator", () => {
           symbol: "101",
           activityType: "DIVIDEND",
           quantity: 500,
-          unitPrice: 0.40,
+          unitPrice: 0.4,
           currency: "HKD",
           fee: 0,
-          amount: 200.00,
+          amount: 200.0,
           comment: "101 (HK0101000591) Cash Dividend HKD 0.40 (Ordinary Dividend)", // No "per Share"
           isDraft: false,
           isValid: true,
@@ -1330,10 +1355,10 @@ describe("Activity Deduplicator", () => {
           symbol: "101",
           activityType: "DIVIDEND",
           quantity: 500,
-          unitPrice: 0.40,
+          unitPrice: 0.4,
           currency: "HKD",
           fee: 0,
-          amount: 200.00,
+          amount: 200.0,
           comment: "101 (HK0101000591) Cash Dividend HKD 0.40 (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1361,7 +1386,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.24,
           currency: "USD",
           fee: 0,
-          amount: 24.00,
+          amount: 24.0,
           comment: "AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1375,7 +1400,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.24,
           currency: "USD",
           fee: 0,
-          amount: 24.00,
+          amount: 24.0,
           comment: "AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1389,14 +1414,17 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0.24,
           currency: "USD",
           fee: 0,
-          amount: 24.00,
+          amount: 24.0,
           comment: "AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
         },
       ];
 
-      const { unique, duplicates } = filterDuplicateActivities(triplicateDividends, existingActivities);
+      const { unique, duplicates } = filterDuplicateActivities(
+        triplicateDividends,
+        existingActivities,
+      );
 
       expect(unique.length).toBe(1);
       expect(duplicates.length).toBe(2);
@@ -1414,10 +1442,10 @@ describe("Activity Deduplicator", () => {
           symbol: "PBR",
           activityType: "DIVIDEND",
           quantity: 200,
-          unitPrice: 0.50,
+          unitPrice: 0.5,
           currency: "USD",
           fee: 0,
-          amount: 100.00,
+          amount: 100.0,
           comment: "PBR(US71654V4086) Cash Dividend USD 0.50 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1431,7 +1459,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0,
           currency: "USD",
           fee: 0,
-          amount: 15.00,
+          amount: 15.0,
           comment: "PBR - Withholding Tax",
           isDraft: false,
           isValid: true,
@@ -1443,10 +1471,10 @@ describe("Activity Deduplicator", () => {
           symbol: "PBR",
           activityType: "DIVIDEND",
           quantity: 200,
-          unitPrice: 0.50,
+          unitPrice: 0.5,
           currency: "USD",
           fee: 0,
-          amount: 100.00,
+          amount: 100.0,
           comment: "PBR(US71654V4086) Cash Dividend USD 0.50 per Share (Ordinary Dividend)",
           isDraft: false,
           isValid: true,
@@ -1460,7 +1488,7 @@ describe("Activity Deduplicator", () => {
           unitPrice: 0,
           currency: "USD",
           fee: 0,
-          amount: 15.00,
+          amount: 15.0,
           comment: "PBR - Withholding Tax",
           isDraft: false,
           isValid: true,
@@ -1477,7 +1505,20 @@ describe("Activity Deduplicator", () => {
 
 describe("IBKR TransactionID dedup", () => {
   const tax = (txid: string) =>
-    ({ accountId: "a", date: "2026-01-15", symbol: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: `AAPL TAX [IBKR ${txid}]`, isDraft: false, isValid: true }) as any;
+    ({
+      accountId: "a",
+      date: "2026-01-15",
+      symbol: "AAPL",
+      activityType: "TAX",
+      quantity: 1.5,
+      unitPrice: 1,
+      amount: 1.5,
+      fee: 0,
+      currency: "USD",
+      comment: `AAPL TAX [IBKR ${txid}]`,
+      isDraft: false,
+      isValid: true,
+    }) as any;
 
   it("keeps identical postings with different TransactionIDs in one batch", () => {
     const { unique } = filterDuplicateActivities([tax("1"), tax("2"), tax("3")], []);
@@ -1485,14 +1526,38 @@ describe("IBKR TransactionID dedup", () => {
   });
 
   it("drops a posting whose TransactionID already exists", () => {
-    const existing = [{ activityDate: "2026-01-15", assetId: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: "AAPL TAX [IBKR 2]" }];
+    const existing = [
+      {
+        activityDate: "2026-01-15",
+        assetId: "AAPL",
+        activityType: "TAX",
+        quantity: 1.5,
+        unitPrice: 1,
+        amount: 1.5,
+        fee: 0,
+        currency: "USD",
+        comment: "AAPL TAX [IBKR 2]",
+      },
+    ];
     const { unique, duplicates } = filterDuplicateActivities([tax("1"), tax("2")], existing);
     expect(unique.map((a: any) => a.comment)).toEqual(["AAPL TAX [IBKR 1]"]);
     expect(duplicates).toHaveLength(1);
   });
 
   it("still matches legacy activities imported without a TransactionID by content", () => {
-    const existing = [{ activityDate: "2026-01-15", assetId: "AAPL", activityType: "TAX", quantity: 1.5, unitPrice: 1, amount: 1.5, fee: 0, currency: "USD", comment: "AAPL TAX" }];
+    const existing = [
+      {
+        activityDate: "2026-01-15",
+        assetId: "AAPL",
+        activityType: "TAX",
+        quantity: 1.5,
+        unitPrice: 1,
+        amount: 1.5,
+        fee: 0,
+        currency: "USD",
+        comment: "AAPL TAX",
+      },
+    ];
     const { unique } = filterDuplicateActivities([tax("9")], existing);
     expect(unique).toHaveLength(0);
   });

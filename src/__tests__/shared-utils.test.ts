@@ -259,14 +259,7 @@ describe("Shared Utils", () => {
       });
 
       it("should validate IBKR dividend headers", () => {
-        const headers = [
-          "ClientAccountID",
-          "Date/Time",
-          "Amount",
-          "Type",
-          "Code",
-          "Symbol",
-        ];
+        const headers = ["ClientAccountID", "Date/Time", "Amount", "Type", "Code", "Symbol"];
         expect(validateCsvHeaders(headers)).toBe(true);
       });
     });

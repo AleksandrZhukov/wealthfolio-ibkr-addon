@@ -108,10 +108,7 @@ export async function loadConfigs(secrets: SecretsAPI): Promise<FlexQueryConfig[
 /**
  * Save all Flex Query configurations to storage
  */
-export async function saveConfigs(
-  secrets: SecretsAPI,
-  configs: FlexQueryConfig[]
-): Promise<void> {
+export async function saveConfigs(secrets: SecretsAPI, configs: FlexQueryConfig[]): Promise<void> {
   await secrets.set(SECRET_FLEX_CONFIGS, JSON.stringify(configs));
 }
 
@@ -121,7 +118,7 @@ export async function saveConfigs(
  */
 export async function addConfig(
   secrets: SecretsAPI,
-  config: Omit<FlexQueryConfig, "id">
+  config: Omit<FlexQueryConfig, "id">,
 ): Promise<FlexQueryConfig> {
   return withLock(configLock, async () => {
     const configs = await loadConfigs(secrets);
@@ -142,7 +139,7 @@ export async function addConfig(
 export async function updateConfig(
   secrets: SecretsAPI,
   id: string,
-  updates: Partial<Omit<FlexQueryConfig, "id">>
+  updates: Partial<Omit<FlexQueryConfig, "id">>,
 ): Promise<FlexQueryConfig | null> {
   return withLock(configLock, async () => {
     const configs = await loadConfigs(secrets);
@@ -202,7 +199,7 @@ export async function updateConfigStatus(
     lastFetchTime?: string;
     lastFetchStatus?: "success" | "error";
     lastFetchError?: string;
-  }
+  },
 ): Promise<void> {
   await withLock(configLock, async () => {
     const configs = await loadConfigs(secrets);

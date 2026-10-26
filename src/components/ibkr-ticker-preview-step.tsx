@@ -2,12 +2,7 @@ import { Button } from "./simple-button";
 import { Icons } from "./simple-icons";
 import { ProgressIndicator } from "./simple-progress";
 import { ImportAlert } from "./import-alert";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "./simple-accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./simple-accordion";
 import type { TransactionGroup } from "../types";
 import { debug } from "../lib/debug-logger";
 
@@ -30,7 +25,7 @@ export const IBKRTickerPreviewStep = ({
 }: IBKRTickerPreviewStepProps) => {
   const totalTransactions = transactionGroups.reduce(
     (sum, group) => sum + group.transactions.length,
-    0
+    0,
   );
 
   const canProceed = !isResolving && totalTransactions > 0;
@@ -81,8 +76,8 @@ export const IBKRTickerPreviewStep = ({
       {/* Failed Resolutions Warning */}
       {failedResolutions.length > 0 && (
         <ImportAlert variant="warning" title="Ticker Resolution Issues">
-          {failedResolutions.length} security symbol{failedResolutions.length > 1 ? "s" : ""}{" "}
-          could not be resolved automatically. These transactions will be imported with their ISIN
+          {failedResolutions.length} security symbol{failedResolutions.length > 1 ? "s" : ""} could
+          not be resolved automatically. These transactions will be imported with their ISIN
           identifiers. You can manually update the symbols later.
         </ImportAlert>
       )}

@@ -1,7 +1,7 @@
 /**
  * Shared type definitions for the IBKR Multi-Currency Import addon
  */
-import type { Account, ActivityImport, ActivityDetails } from '@wealthfolio/addon-sdk';
+import type { Account, ActivityImport, ActivityDetails } from "@wealthfolio/addon-sdk";
 
 // Re-export commonly used SDK types
 export type { ActivityDetails };

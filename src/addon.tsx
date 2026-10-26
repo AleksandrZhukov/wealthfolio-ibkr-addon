@@ -1,28 +1,21 @@
-import type { AddonContext, Account } from '@wealthfolio/addon-sdk';
+import type { AddonContext, Account } from "@wealthfolio/addon-sdk";
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import IBKRMultiImportPage from './pages/ibkr-multi-import-page';
-import IBKRFlexSettingsPage from './pages/ibkr-flex-settings-page';
-import { setHttpClient, createNetworkHttpClient } from './lib/flex-query-fetcher';
-import {
-  loadConfigsSafe,
-  loadToken,
-  updateConfigStatus,
-} from './lib/flex-config-storage';
-import { generateAccountNames } from './lib/account-name-generator';
-import { findIbkrAccount } from './lib/ibkr-accounts';
-import { AsyncLock } from './lib/async-lock';
-import { QUERY_STALE_TIME_MS, AUTO_FETCH_DEBOUNCE_MS } from './lib/constants';
-import {
-  isConfigInCooldown,
-  createPendingStatus,
-} from './lib/auto-fetch-helpers';
-import { processFlexQueryConfig } from './lib/auto-fetch-processor';
-import { getErrorMessage } from './lib/shared-utils';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import IBKRMultiImportPage from "./pages/ibkr-multi-import-page";
+import IBKRFlexSettingsPage from "./pages/ibkr-flex-settings-page";
+import { setHttpClient, createNetworkHttpClient } from "./lib/flex-query-fetcher";
+import { loadConfigsSafe, loadToken, updateConfigStatus } from "./lib/flex-config-storage";
+import { generateAccountNames } from "./lib/account-name-generator";
+import { findIbkrAccount } from "./lib/ibkr-accounts";
+import { AsyncLock } from "./lib/async-lock";
+import { QUERY_STALE_TIME_MS, AUTO_FETCH_DEBOUNCE_MS } from "./lib/constants";
+import { isConfigInCooldown, createPendingStatus } from "./lib/auto-fetch-helpers";
+import { processFlexQueryConfig } from "./lib/auto-fetch-processor";
+import { getErrorMessage } from "./lib/shared-utils";
 
-const ADDON_ID = 'ibkr-multi-import';
-const ROUTE_IMPORT = 'import';
-const ROUTE_SETTINGS = 'settings';
+const ADDON_ID = "ibkr-multi-import";
+const ROUTE_IMPORT = "import";
+const ROUTE_SETTINGS = "settings";
 
 // Lock for preventing concurrent auto-fetch operations
 const autoFetchLock = new AsyncLock();
@@ -34,7 +27,7 @@ const autoFetchLock = new AsyncLock();
  */
 function createDebouncedFunction<T extends (...args: unknown[]) => void>(
   fn: T,
-  delayMs: number
+  delayMs: number,
 ): { debounced: (...args: Parameters<T>) => void; cleanup: () => void } {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -114,17 +107,21 @@ export function enable(ctx: AddonContext) {
   async function getOrCreateAccountsForGroup(
     accountGroup: string,
     currencies: string[],
-    ibkr?: { ibkrAccount: string; label: string }
+    ibkr?: { ibkrAccount: string; label: string },
   ): Promise<Map<string, Account>> {
     const accountsByCurrency = new Map<string, Account>();
 
     // Get existing accounts
-    const allAccounts = await ctx.api.accounts?.getAll() || [];
+    const allAccounts = (await ctx.api.accounts?.getAll()) || [];
     const groupAccounts = allAccounts.filter((a) => a.group === accountGroup);
     const ibkrAccount = ibkr?.ibkrAccount || undefined;
 
     // Generate expected account names
-    const expectedNames = generateAccountNames(accountGroup, currencies, ibkrAccount ? ibkr?.label : undefined);
+    const expectedNames = generateAccountNames(
+      accountGroup,
+      currencies,
+      ibkrAccount ? ibkr?.label : undefined,
+    );
 
     for (const expected of expectedNames) {
       // Check if account exists (by IBKR account number, then by name)
@@ -140,8 +137,8 @@ export function enable(ctx: AddonContext) {
             currency: expected.currency,
             group: accountGroup,
             accountNumber: ibkrAccount,
-            accountType: 'SECURITIES',
-            trackingMode: 'TRANSACTIONS',
+            accountType: "SECURITIES",
+            trackingMode: "TRANSACTIONS",
             isDefault: false,
             isActive: true,
           });
@@ -202,18 +199,22 @@ export function enable(ctx: AddonContext) {
         // Check per-config cooldown (initial check using cached config)
         const cooldownCheck = isConfigInCooldown(config.lastFetchTime);
         if (cooldownCheck.inCooldown) {
-          ctx.api.logger?.trace(`IBKR auto-fetch [${config.name}]: cooldown active (${cooldownCheck.hoursRemaining}h remaining)`);
+          ctx.api.logger?.trace(
+            `IBKR auto-fetch [${config.name}]: cooldown active (${cooldownCheck.hoursRemaining}h remaining)`,
+          );
           continue;
         }
 
         // TOCTOU fix: Re-load and re-check config right before fetch
         const freshLoadResult = await loadConfigsSafe(ctx.api.secrets);
         if (freshLoadResult.success) {
-          const freshConfig = freshLoadResult.configs?.find(c => c.id === config.id);
+          const freshConfig = freshLoadResult.configs?.find((c) => c.id === config.id);
           if (freshConfig) {
             const freshCooldownCheck = isConfigInCooldown(freshConfig.lastFetchTime);
             if (freshCooldownCheck.inCooldown) {
-              ctx.api.logger?.trace(`IBKR auto-fetch [${config.name}]: cooldown became active (${freshCooldownCheck.hoursRemaining}h remaining)`);
+              ctx.api.logger?.trace(
+                `IBKR auto-fetch [${config.name}]: cooldown became active (${freshCooldownCheck.hoursRemaining}h remaining)`,
+              );
               continue;
             }
           }
@@ -225,7 +226,9 @@ export function enable(ctx: AddonContext) {
         try {
           await updateConfigStatus(ctx.api.secrets, config.id, createPendingStatus());
         } catch (claimError) {
-          ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: Failed to claim config, skipping`);
+          ctx.api.logger?.warn(
+            `IBKR auto-fetch [${config.name}]: Failed to claim config, skipping`,
+          );
           continue;
         }
 
@@ -236,7 +239,6 @@ export function enable(ctx: AddonContext) {
           getOrCreateAccountsForGroup,
         });
       }
-
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
       ctx.api.logger?.error(`IBKR auto-fetch error: ${msg}`);
@@ -251,7 +253,7 @@ export function enable(ctx: AddonContext) {
   if (ctx.api.events?.portfolio?.onUpdateComplete) {
     const { debounced: debouncedAutoFetch, cleanup: cleanupDebounce } = createDebouncedFunction(
       performAutoFetch,
-      AUTO_FETCH_DEBOUNCE_MS
+      AUTO_FETCH_DEBOUNCE_MS,
     );
 
     // Add debounce cleanup to run on disable
@@ -259,14 +261,17 @@ export function enable(ctx: AddonContext) {
 
     // Register event listener - use void to explicitly mark fire-and-forget
     // and handle errors synchronously to prevent unhandled rejections
-    void ctx.api.events.portfolio.onUpdateComplete(debouncedAutoFetch)
+    void ctx.api.events.portfolio
+      .onUpdateComplete(debouncedAutoFetch)
       .then((unlisten) => {
         // If addon was disabled while registration was pending, clean up immediately
         if (isDisabled) {
           try {
             unlisten();
           } catch (error) {
-            ctx.api.logger?.warn(`IBKR addon: Failed to unregister event listener (late cleanup): ${getErrorMessage(error)}`);
+            ctx.api.logger?.warn(
+              `IBKR addon: Failed to unregister event listener (late cleanup): ${getErrorMessage(error)}`,
+            );
           }
           return;
         }
@@ -276,14 +281,20 @@ export function enable(ctx: AddonContext) {
           try {
             unlisten();
           } catch (error) {
-            ctx.api.logger?.warn(`IBKR addon: Failed to unregister event listener: ${getErrorMessage(error)}`);
+            ctx.api.logger?.warn(
+              `IBKR addon: Failed to unregister event listener: ${getErrorMessage(error)}`,
+            );
           }
         });
-        ctx.api.logger?.trace(`IBKR addon: Registered portfolio update listener (${AUTO_FETCH_DEBOUNCE_MS}ms debounce)`);
+        ctx.api.logger?.trace(
+          `IBKR addon: Registered portfolio update listener (${AUTO_FETCH_DEBOUNCE_MS}ms debounce)`,
+        );
       })
       .catch((error) => {
         // Log but don't rethrow - addon should continue working even if event registration fails
-        ctx.api.logger?.warn(`IBKR addon: Failed to register event listener: ${getErrorMessage(error)}`);
+        ctx.api.logger?.warn(
+          `IBKR addon: Failed to register event listener: ${getErrorMessage(error)}`,
+        );
       });
   }
 

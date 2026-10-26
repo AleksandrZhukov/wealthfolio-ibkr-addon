@@ -6,40 +6,34 @@ describe("Dividend Utils", () => {
     describe("standard format with per Share", () => {
       it("should parse USD dividend", () => {
         const result = parseDividendInfo(
-          "O(US7561091049) Cash Dividend USD 0.264 per Share (Ordinary Dividend)"
+          "O(US7561091049) Cash Dividend USD 0.264 per Share (Ordinary Dividend)",
         );
 
         expect(result).toEqual({ currency: "USD", perShare: 0.264 });
       });
 
       it("should parse GBP dividend", () => {
-        const result = parseDividendInfo(
-          "SUPR(GB00BF345X11) Cash Dividend GBP 0.0153 per Share"
-        );
+        const result = parseDividendInfo("SUPR(GB00BF345X11) Cash Dividend GBP 0.0153 per Share");
 
         expect(result).toEqual({ currency: "GBP", perShare: 0.0153 });
       });
 
       it("should parse NOK dividend with multiple decimals", () => {
         const result = parseDividendInfo(
-          "BAKKA(NO0010597883) Cash Dividend NOK 13.37347 per Share"
+          "BAKKA(NO0010597883) Cash Dividend NOK 13.37347 per Share",
         );
 
         expect(result).toEqual({ currency: "NOK", perShare: 13.37347 });
       });
 
       it("should parse EUR dividend", () => {
-        const result = parseDividendInfo(
-          "Example Cash Dividend EUR 1.50 per Share"
-        );
+        const result = parseDividendInfo("Example Cash Dividend EUR 1.50 per Share");
 
         expect(result).toEqual({ currency: "EUR", perShare: 1.5 });
       });
 
       it("should parse CHF dividend", () => {
-        const result = parseDividendInfo(
-          "NESN(CH0038863350) Cash Dividend CHF 3.00 per Share"
-        );
+        const result = parseDividendInfo("NESN(CH0038863350) Cash Dividend CHF 3.00 per Share");
 
         expect(result).toEqual({ currency: "CHF", perShare: 3.0 });
       });
@@ -48,24 +42,20 @@ describe("Dividend Utils", () => {
     describe("format without per Share", () => {
       it("should parse HKD dividend without per Share", () => {
         const result = parseDividendInfo(
-          "101 (HK0101000591) Cash Dividend HKD 0.40 (Ordinary Dividend)"
+          "101 (HK0101000591) Cash Dividend HKD 0.40 (Ordinary Dividend)",
         );
 
         expect(result).toEqual({ currency: "HKD", perShare: 0.4 });
       });
 
       it("should parse dividend ending with space", () => {
-        const result = parseDividendInfo(
-          "AAPL Cash Dividend USD 0.24 "
-        );
+        const result = parseDividendInfo("AAPL Cash Dividend USD 0.24 ");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.24 });
       });
 
       it("should parse dividend at end of string", () => {
-        const result = parseDividendInfo(
-          "MSFT Cash Dividend USD 0.75"
-        );
+        const result = parseDividendInfo("MSFT Cash Dividend USD 0.75");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.75 });
       });
@@ -73,17 +63,13 @@ describe("Dividend Utils", () => {
 
     describe("flexible format for edge cases", () => {
       it("should handle Special Dividend", () => {
-        const result = parseDividendInfo(
-          "XYZ Special Dividend USD 5.00 per Share"
-        );
+        const result = parseDividendInfo("XYZ Special Dividend USD 5.00 per Share");
 
         expect(result).toEqual({ currency: "USD", perShare: 5.0 });
       });
 
       it("should handle Interim Dividend", () => {
-        const result = parseDividendInfo(
-          "ABC Interim Dividend GBP 0.125 per Share"
-        );
+        const result = parseDividendInfo("ABC Interim Dividend GBP 0.125 per Share");
 
         expect(result).toEqual({ currency: "GBP", perShare: 0.125 });
       });
@@ -91,25 +77,19 @@ describe("Dividend Utils", () => {
 
     describe("input normalization", () => {
       it("should normalize multiple spaces", () => {
-        const result = parseDividendInfo(
-          "Test  Cash   Dividend   USD   0.50   per   Share"
-        );
+        const result = parseDividendInfo("Test  Cash   Dividend   USD   0.50   per   Share");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.5 });
       });
 
       it("should handle tabs", () => {
-        const result = parseDividendInfo(
-          "Test\tCash Dividend\tUSD\t0.50\tper Share"
-        );
+        const result = parseDividendInfo("Test\tCash Dividend\tUSD\t0.50\tper Share");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.5 });
       });
 
       it("should trim whitespace", () => {
-        const result = parseDividendInfo(
-          "   Cash Dividend USD 0.50 per Share   "
-        );
+        const result = parseDividendInfo("   Cash Dividend USD 0.50 per Share   ");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.5 });
       });
@@ -117,42 +97,32 @@ describe("Dividend Utils", () => {
 
     describe("currency handling", () => {
       it("should normalize lowercase currency to uppercase", () => {
-        const result = parseDividendInfo(
-          "Cash Dividend usd 0.50 per Share"
-        );
+        const result = parseDividendInfo("Cash Dividend usd 0.50 per Share");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.5 });
       });
 
       it("should normalize mixed case currency", () => {
-        const result = parseDividendInfo(
-          "Cash Dividend Usd 0.50 per Share"
-        );
+        const result = parseDividendInfo("Cash Dividend Usd 0.50 per Share");
 
         expect(result).toEqual({ currency: "USD", perShare: 0.5 });
       });
 
       it("should handle 3-letter currency codes", () => {
-        const result = parseDividendInfo(
-          "Cash Dividend JPY 100 per Share"
-        );
+        const result = parseDividendInfo("Cash Dividend JPY 100 per Share");
 
         expect(result).toEqual({ currency: "JPY", perShare: 100 });
       });
 
       it("should handle 4-letter currency codes (like USDT)", () => {
-        const result = parseDividendInfo(
-          "Cash Dividend USDT 1.00 per Share"
-        );
+        const result = parseDividendInfo("Cash Dividend USDT 1.00 per Share");
 
         expect(result).toEqual({ currency: "USDT", perShare: 1.0 });
       });
 
       it("should handle 2-letter codes", () => {
         // Some older or special codes might be 2 letters
-        const result = parseDividendInfo(
-          "Cash Dividend HK 0.50 per Share"
-        );
+        const result = parseDividendInfo("Cash Dividend HK 0.50 per Share");
 
         expect(result).toEqual({ currency: "HK", perShare: 0.5 });
       });
@@ -209,22 +179,18 @@ describe("Dividend Utils", () => {
     describe("real-world examples", () => {
       it("should parse AAPL dividend", () => {
         const result = parseDividendInfo(
-          "AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend)"
+          "AAPL(US0378331005) Cash Dividend USD 0.24 per Share (Ordinary Dividend)",
         );
         expect(result).toEqual({ currency: "USD", perShare: 0.24 });
       });
 
       it("should parse HSBC dividend", () => {
-        const result = parseDividendInfo(
-          "HSBA(GB0005405286) Cash Dividend GBP 0.1 per Share"
-        );
+        const result = parseDividendInfo("HSBA(GB0005405286) Cash Dividend GBP 0.1 per Share");
         expect(result).toEqual({ currency: "GBP", perShare: 0.1 });
       });
 
       it("should parse dividend with ISIN", () => {
-        const result = parseDividendInfo(
-          "VTI (US9229087690) Cash Dividend USD 0.8253 per Share"
-        );
+        const result = parseDividendInfo("VTI (US9229087690) Cash Dividend USD 0.8253 per Share");
         expect(result).toEqual({ currency: "USD", perShare: 0.8253 });
       });
     });
@@ -232,9 +198,7 @@ describe("Dividend Utils", () => {
 
   describe("extractDividendPerShare", () => {
     it("should extract per-share rate from valid dividend", () => {
-      const rate = extractDividendPerShare(
-        "AAPL Cash Dividend USD 0.24 per Share"
-      );
+      const rate = extractDividendPerShare("AAPL Cash Dividend USD 0.24 per Share");
       expect(rate).toBe(0.24);
     });
 
@@ -250,9 +214,7 @@ describe("Dividend Utils", () => {
     });
 
     it("should work with multiple decimal places", () => {
-      const rate = extractDividendPerShare(
-        "Cash Dividend NOK 13.37347 per Share"
-      );
+      const rate = extractDividendPerShare("Cash Dividend NOK 13.37347 per Share");
       expect(rate).toBe(13.37347);
     });
   });

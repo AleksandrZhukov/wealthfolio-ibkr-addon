@@ -4,44 +4,44 @@
  */
 export const EXCHANGE_TO_CURRENCY: Record<string, string> = {
   // US Exchanges
-  "NYSE": "USD",
-  "NASDAQ": "USD",
-  "AMEX": "USD",
-  "ARCA": "USD",
-  "BATS": "USD",
-  "IEX": "USD",
-  "CBOE": "USD",
-  "PINK": "USD",      // OTC Pink Sheets (for ADRs like HESAY)
+  NYSE: "USD",
+  NASDAQ: "USD",
+  AMEX: "USD",
+  ARCA: "USD",
+  BATS: "USD",
+  IEX: "USD",
+  CBOE: "USD",
+  PINK: "USD", // OTC Pink Sheets (for ADRs like HESAY)
 
   // UK Exchanges
-  "LSE": "GBP",
-  "LSEIOB1": "GBP",
-  "LSEETF": "GBP",
+  LSE: "GBP",
+  LSEIOB1: "GBP",
+  LSEETF: "GBP",
 
   // European Exchanges
-  "EBS": "CHF",      // Swiss (Zurich)
-  "SBF": "EUR",      // Euronext Paris
-  "AEB": "EUR",      // Euronext Amsterdam
-  "BVME": "EUR",     // Borsa Italiana
-  "FWB": "EUR",      // Frankfurt
-  "IBIS": "EUR",     // Xetra
+  EBS: "CHF", // Swiss (Zurich)
+  SBF: "EUR", // Euronext Paris
+  AEB: "EUR", // Euronext Amsterdam
+  BVME: "EUR", // Borsa Italiana
+  FWB: "EUR", // Frankfurt
+  IBIS: "EUR", // Xetra
 
   // Asian Exchanges
-  "SEHK": "HKD",     // Hong Kong
-  "TSE": "JPY",      // Tokyo
-  "SGX": "SGD",      // Singapore
+  SEHK: "HKD", // Hong Kong
+  TSE: "JPY", // Tokyo
+  SGX: "SGD", // Singapore
 
   // Australian Exchange
-  "ASX": "AUD",
+  ASX: "AUD",
 
   // Scandinavian Exchanges
-  "OSE": "NOK",      // Oslo
-  "SFB": "SEK",      // Stockholm
-  "KFB": "DKK",      // Copenhagen
+  OSE: "NOK", // Oslo
+  SFB: "SEK", // Stockholm
+  KFB: "DKK", // Copenhagen
 
   // Canadian Exchange
-  "TSX": "CAD",
-  "VENTURE": "CAD",
+  TSX: "CAD",
+  VENTURE: "CAD",
 };
 
 /**

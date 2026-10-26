@@ -109,7 +109,8 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
           Account Group <span className="text-destructive">*</span>
         </Label>
         <p className="text-sm text-muted-foreground">
-          Enter a name for the account group. Accounts will be created as "{groupName || "GroupName"} - USD", "{groupName || "GroupName"} - EUR", etc.
+          Enter a name for the account group. Accounts will be created as "
+          {groupName || "GroupName"} - USD", "{groupName || "GroupName"} - EUR", etc.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -139,9 +140,7 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
       {/* Data Source Selection */}
       <div className="space-y-3">
         <Label className="text-base font-medium">Data Source</Label>
-        <p className="text-sm text-muted-foreground">
-          Choose how to load your IBKR transactions
-        </p>
+        <p className="text-sm text-muted-foreground">Choose how to load your IBKR transactions</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Flex Query Option */}
@@ -155,12 +154,12 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
             }`}
           >
             <div className="flex items-center gap-3">
-              <Cloud className={`h-6 w-6 ${dataSource === "flexquery" ? "text-primary" : "text-muted-foreground"}`} />
+              <Cloud
+                className={`h-6 w-6 ${dataSource === "flexquery" ? "text-primary" : "text-muted-foreground"}`}
+              />
               <div>
                 <div className="font-medium">Flex Query API</div>
-                <div className="text-xs text-muted-foreground">
-                  Fetch automatically from IBKR
-                </div>
+                <div className="text-xs text-muted-foreground">Fetch automatically from IBKR</div>
               </div>
             </div>
           </button>
@@ -176,12 +175,12 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
             }`}
           >
             <div className="flex items-center gap-3">
-              <Upload className={`h-6 w-6 ${dataSource === "manual" ? "text-primary" : "text-muted-foreground"}`} />
+              <Upload
+                className={`h-6 w-6 ${dataSource === "manual" ? "text-primary" : "text-muted-foreground"}`}
+              />
               <div>
                 <div className="font-medium">Manual CSV Upload</div>
-                <div className="text-xs text-muted-foreground">
-                  Upload exported CSV files
-                </div>
+                <div className="text-xs text-muted-foreground">Upload exported CSV files</div>
               </div>
             </div>
           </button>
@@ -240,10 +239,10 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
 
           <div className="flex items-center justify-between pt-2">
             <div className="space-y-0.5">
-              <Label htmlFor="rememberCreds" className="text-sm">Remember credentials</Label>
-              <p className="text-xs text-muted-foreground">
-                Store securely in system keyring
-              </p>
+              <Label htmlFor="rememberCreds" className="text-sm">
+                Remember credentials
+              </Label>
+              <p className="text-xs text-muted-foreground">Store securely in system keyring</p>
             </div>
             <Switch
               id="rememberCreds"
@@ -253,7 +252,8 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Get these from IBKR Client Portal → Reporting → Flex Queries → Flex Web Service Configuration
+            Get these from IBKR Client Portal → Reporting → Flex Queries → Flex Web Service
+            Configuration
           </p>
         </div>
       )}
@@ -261,11 +261,7 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
       {/* Manual CSV Upload */}
       {dataSource === "manual" && (
         <div className="space-y-3">
-          <MultiFileDropzone
-            files={selectedFiles}
-            onFilesChange={setSelectedFiles}
-            accept=".csv"
-          />
+          <MultiFileDropzone files={selectedFiles} onFilesChange={setSelectedFiles} accept=".csv" />
           <p className="text-xs text-muted-foreground">
             Export Activity Statements from IBKR Client Portal as CSV files
           </p>
@@ -279,20 +275,14 @@ export const IBKRSourceSelectionStep: React.FC<IBKRSourceSelectionStepProps> = (
             Required: {getMissingRequirements().join(", ")}
           </p>
         )}
-        <Button
-          onClick={onNext}
-          disabled={!canProceed() || isLoading}
-          size="lg"
-        >
+        <Button onClick={onNext} disabled={!canProceed() || isLoading} size="lg">
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading...
             </>
           ) : (
-            <>
-              {dataSource === "flexquery" ? "Fetch Data" : "Parse Files"}
-            </>
+            <>{dataSource === "flexquery" ? "Fetch Data" : "Parse Files"}</>
           )}
         </Button>
       </div>

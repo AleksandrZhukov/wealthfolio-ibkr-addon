@@ -26,7 +26,7 @@ describe("FX Transaction Splitter", () => {
     symbol: string,
     quantity: number,
     unitPrice: number,
-    comment?: string
+    comment?: string,
   ): ActivityImport => ({
     date: "2024-01-15",
     symbol,
@@ -54,7 +54,10 @@ describe("FX Transaction Splitter", () => {
 
     it("should handle undefined transactions input", () => {
       const accountsByCurrency = new Map<string, Account>();
-      const result = splitFXConversions(undefined as unknown as ActivityImport[], accountsByCurrency);
+      const result = splitFXConversions(
+        undefined as unknown as ActivityImport[],
+        accountsByCurrency,
+      );
 
       expect(result.transactions).toEqual([]);
       expect(result.skippedConversions).toEqual([]);

@@ -17,7 +17,7 @@ const IBKR_HEADER_START = '"ClientAccountID"';
  */
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
-  let currentField = '';
+  let currentField = "";
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
@@ -32,9 +32,9 @@ function parseCSVLine(line: string): string[] {
         inQuotes = !inQuotes;
         currentField += char;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       result.push(currentField.trim());
-      currentField = '';
+      currentField = "";
     } else {
       currentField += char;
     }
@@ -100,48 +100,55 @@ function detectIBKRSections(csvContent: string): CsvSection[] {
  * Detect section type based on column structure (not position!)
  * IBKR can export sections in any order, so we identify by columns.
  */
-function detectSectionType(headers: string[]): 'trades' | 'dividends' | 'transfers' | 'unknown' {
-  const headerSet = new Set(headers.map(h => h.replace(/^"|"$/g, '')));
+function detectSectionType(headers: string[]): "trades" | "dividends" | "transfers" | "unknown" {
+  const headerSet = new Set(headers.map((h) => h.replace(/^"|"$/g, "")));
 
   // Trades section: has TransactionType, Exchange, Buy/Sell columns
-  if (headerSet.has('TransactionType') && headerSet.has('Exchange') && headerSet.has('Buy/Sell')) {
-    return 'trades';
+  if (headerSet.has("TransactionType") && headerSet.has("Exchange") && headerSet.has("Buy/Sell")) {
+    return "trades";
   }
 
   // Dividends/Cash section: has Date/Time and Amount columns (but not TransactionType)
-  if (headerSet.has('Date/Time') && headerSet.has('Amount') && !headerSet.has('TransactionType')) {
-    return 'dividends';
+  if (headerSet.has("Date/Time") && headerSet.has("Amount") && !headerSet.has("TransactionType")) {
+    return "dividends";
   }
 
   // Transfers section: has Direction, TransferCompany, CashTransfer columns
-  if (headerSet.has('Direction') && headerSet.has('TransferCompany') && headerSet.has('CashTransfer')) {
-    return 'transfers';
+  if (
+    headerSet.has("Direction") &&
+    headerSet.has("TransferCompany") &&
+    headerSet.has("CashTransfer")
+  ) {
+    return "transfers";
   }
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
  * Normalize column names across different IBKR sections
  * Maps section-specific column names to standard names used by trades section
  */
-function normalizeHeaders(headers: string[], sectionType: 'trades' | 'dividends' | 'transfers' | 'unknown'): string[] {
+function normalizeHeaders(
+  headers: string[],
+  sectionType: "trades" | "dividends" | "transfers" | "unknown",
+): string[] {
   // Trades section: already has standard names, no changes needed
-  if (sectionType === 'trades') {
+  if (sectionType === "trades") {
     return headers;
   }
 
   // Dividends/Cash section: map different column names to trades section format
-  if (sectionType === 'dividends') {
-    return headers.map(header => {
-      const h = header.replace(/^"|"$/g, ''); // Remove quotes
+  if (sectionType === "dividends") {
+    return headers.map((header) => {
+      const h = header.replace(/^"|"$/g, ""); // Remove quotes
 
       // Map dividends section columns to trades section equivalents
       const mapping: Record<string, string> = {
-        'Date/Time': 'TradeDate',        // Dividends section uses "Date/Time" for date
-        'Amount': 'TradeMoney',          // Dividends section uses "Amount" for transaction amount
-        'Type': 'Notes/Codes',           // Dividends section uses "Type" for transaction category
-        'Code': 'TransactionType',       // Dividends section uses "Code" for transaction type
+        "Date/Time": "TradeDate", // Dividends section uses "Date/Time" for date
+        Amount: "TradeMoney", // Dividends section uses "Amount" for transaction amount
+        Type: "Notes/Codes", // Dividends section uses "Type" for transaction category
+        Code: "TransactionType", // Dividends section uses "Code" for transaction type
       };
 
       return `"${mapping[h] || h}"`;
@@ -149,17 +156,17 @@ function normalizeHeaders(headers: string[], sectionType: 'trades' | 'dividends'
   }
 
   // Transfers section: map column names to trades section format
-  if (sectionType === 'transfers') {
-    return headers.map(header => {
-      const h = header.replace(/^"|"$/g, '');
+  if (sectionType === "transfers") {
+    return headers.map((header) => {
+      const h = header.replace(/^"|"$/g, "");
 
       // Map transfers section columns to trades section equivalents
       const mapping: Record<string, string> = {
-        'Date': 'TradeDate',             // Transfers section uses "Date" for date
-        'Type': 'TransactionType',       // Transfers section uses "Type" for transaction type (INTERNAL, ACATS, etc.)
-        'Direction': '_TRANSFER_DIRECTION', // Preserve Direction (IN/OUT) as custom field
-        'CashTransfer': 'TradeMoney',    // CashTransfer contains the cash amount for transfers
-        'TransferCompany': 'Exchange',   // TransferCompany for context
+        Date: "TradeDate", // Transfers section uses "Date" for date
+        Type: "TransactionType", // Transfers section uses "Type" for transaction type (INTERNAL, ACATS, etc.)
+        Direction: "_TRANSFER_DIRECTION", // Preserve Direction (IN/OUT) as custom field
+        CashTransfer: "TradeMoney", // CashTransfer contains the cash amount for transfers
+        TransferCompany: "Exchange", // TransferCompany for context
       };
 
       return `"${mapping[h] || h}"`;
@@ -190,38 +197,38 @@ export function extractTradesSection(csvContent: string): string {
   const sections = detectIBKRSections(csvContent);
 
   if (sections.length === 0) {
-    throw new Error('No valid IBKR sections found in CSV');
+    throw new Error("No valid IBKR sections found in CSV");
   }
 
   // Find the trades section to use as base header (order may vary!)
-  const tradesSection = sections.find(section => {
+  const tradesSection = sections.find((section) => {
     const headers = parseCSVLine(section.header);
-    return detectSectionType(headers) === 'trades';
+    return detectSectionType(headers) === "trades";
   });
 
   if (!tradesSection) {
-    throw new Error('No trades section found in IBKR CSV');
+    throw new Error("No trades section found in IBKR CSV");
   }
 
   const baseHeaders = parseCSVLine(tradesSection.header);
 
   // Collect all unique normalized headers from all sections
-  const allNormalizedHeaders = new Set<string>(baseHeaders.map(h => h.replace(/^"|"$/g, '')));
+  const allNormalizedHeaders = new Set<string>(baseHeaders.map((h) => h.replace(/^"|"$/g, "")));
 
   for (const section of sections) {
     const sectionHeaders = parseCSVLine(section.header);
     const sectionType = detectSectionType(sectionHeaders);
     const normalizedHeaders = normalizeHeaders(sectionHeaders, sectionType);
 
-    normalizedHeaders.forEach(header => {
-      const cleanHeader = header.replace(/^"|"$/g, '');
+    normalizedHeaders.forEach((header) => {
+      const cleanHeader = header.replace(/^"|"$/g, "");
       allNormalizedHeaders.add(cleanHeader);
     });
   }
 
   // Build final header list: start with base headers, then add new columns
-  const finalHeaders = [...baseHeaders.map(h => h.replace(/^"|"$/g, ''))];
-  allNormalizedHeaders.forEach(header => {
+  const finalHeaders = [...baseHeaders.map((h) => h.replace(/^"|"$/g, ""))];
+  allNormalizedHeaders.forEach((header) => {
     if (!finalHeaders.includes(header)) {
       finalHeaders.push(header);
     }
@@ -243,29 +250,28 @@ export function extractTradesSection(csvContent: string): string {
       const valueMap = new Map<string, string>();
       normalizedHeaders.forEach((header, index) => {
         if (index < values.length) {
-          valueMap.set(header.replace(/^"|"$/g, ''), values[index]);
+          valueMap.set(header.replace(/^"|"$/g, ""), values[index]);
         }
       });
 
       // Build output row using final headers order
-      const outputValues = finalHeaders.map(header => {
+      const outputValues = finalHeaders.map((header) => {
         return valueMap.get(header) || '""'; // Empty string if column doesn't exist in this section
       });
 
-      allRows.push(outputValues.join(','));
+      allRows.push(outputValues.join(","));
     }
   }
 
   // Return merged CSV: final header (with quotes) + all normalized rows
-  const finalHeaderRow = finalHeaders.map(h => `"${h}"`).join(',');
-  return [finalHeaderRow, ...allRows].join('\n');
+  const finalHeaderRow = finalHeaders.map((h) => `"${h}"`).join(",");
+  return [finalHeaderRow, ...allRows].join("\n");
 }
 
 /**
  * Check if a CSV file is a multi-section IBKR export
  */
 export function isMultiSectionIBKR(csvContent: string): boolean {
-  const headerMatches = csvContent.match(new RegExp(IBKR_HEADER_START, 'g'));
+  const headerMatches = csvContent.match(new RegExp(IBKR_HEADER_START, "g"));
   return (headerMatches?.length || 0) > 1;
 }
-

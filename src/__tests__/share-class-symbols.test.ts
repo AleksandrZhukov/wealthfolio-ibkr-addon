@@ -11,7 +11,7 @@ describe("IBKR share-class symbols", () => {
     ];
     const result = await resolveTicker(
       { isin: "US0846707026", symbol: "BRK B", exchange: "NYSE" } as any,
-      { searchFn } as any
+      { searchFn } as any,
     );
     expect(result.yahooTicker).toBe("BRK-B");
   });
@@ -20,7 +20,7 @@ describe("IBKR share-class symbols", () => {
     const { resolveTicker } = await import("../lib/ticker-resolver");
     const result = await resolveTicker(
       { isin: "US0846707026", symbol: "BRK B", exchange: "NYSE" } as any,
-      { searchFn: async () => [] } as any
+      { searchFn: async () => [] } as any,
     );
     expect(result.yahooTicker).toBe("BRK-B");
   });

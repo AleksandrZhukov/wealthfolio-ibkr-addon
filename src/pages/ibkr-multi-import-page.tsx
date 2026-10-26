@@ -5,7 +5,12 @@ import { debug } from "../lib/debug-logger";
 import { getErrorMessage } from "../lib/shared-utils";
 import { detectCurrenciesFromIBKR } from "../lib/currency-detector";
 import { generateAccountNames } from "../lib/account-name-generator";
-import { fetchFlexQuery, fetchFlexQueryRange, validateFlexToken, validateQueryId } from "../lib/flex-query-fetcher";
+import {
+  fetchFlexQuery,
+  fetchFlexQueryRange,
+  validateFlexToken,
+  validateQueryId,
+} from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
 import { importValidated } from "../lib/validated-import";
 import { accountNamePrefix, findIbkrAccount, partitionByIbkrAccount } from "../lib/ibkr-accounts";
@@ -133,7 +138,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   // Get unique groups from accounts (memoized to avoid recalculation on every render)
   const existingGroups = useMemo(
     () => [...new Set(accounts.map((a) => a.group).filter(Boolean))] as string[],
-    [accounts]
+    [accounts],
   );
 
   // Refresh accounts list from API
@@ -179,26 +184,30 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   };
 
   // Process parsed data and advance to step 2 (memoized to prevent stale closures)
-  const processDataToStep2 = useCallback((data: CsvRowData[]) => {
-    // One set of currency accounts per IBKR account, named after its alias
-    const previews = partitionByIbkrAccount(data).flatMap((partition) => {
-      const ibkrLabel = partition.ibkrAccount ? partition.label : undefined;
-      const currencies = detectCurrenciesFromIBKR(partition.rows);
-      return generateAccountNames(groupName, currencies, ibkrLabel).map((acc) => {
-        const preview = { ...acc, ibkrAccount: partition.ibkrAccount || undefined, ibkrLabel };
-        return {
-          ...preview,
-          transactionCount: partition.rows.filter((row) => row.CurrencyPrimary === acc.currency).length,
-          existingAccount: findIbkrAccount(accounts, preview),
-        };
+  const processDataToStep2 = useCallback(
+    (data: CsvRowData[]) => {
+      // One set of currency accounts per IBKR account, named after its alias
+      const previews = partitionByIbkrAccount(data).flatMap((partition) => {
+        const ibkrLabel = partition.ibkrAccount ? partition.label : undefined;
+        const currencies = detectCurrenciesFromIBKR(partition.rows);
+        return generateAccountNames(groupName, currencies, ibkrLabel).map((acc) => {
+          const preview = { ...acc, ibkrAccount: partition.ibkrAccount || undefined, ibkrLabel };
+          return {
+            ...preview,
+            transactionCount: partition.rows.filter((row) => row.CurrencyPrimary === acc.currency)
+              .length,
+            existingAccount: findIbkrAccount(accounts, preview),
+          };
+        });
       });
-    });
 
-    setAccountPreviews(previews);
-    setIsLoadingData(false);
-    setLoadingMessage("");
-    setCurrentStep(2);
-  }, [groupName, accounts]);
+      setAccountPreviews(previews);
+      setIsLoadingData(false);
+      setLoadingMessage("");
+      setCurrentStep(2);
+    },
+    [groupName, accounts],
+  );
 
   // Step 1: Load data from selected source (memoized to ensure stable reference)
   const handleLoadData = useCallback(async () => {
@@ -217,7 +226,12 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         if (flexFromDate) {
           // Activity statements are built end-of-day, so stop at yesterday.
           const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          const range = await fetchFlexQueryRange(flexConfig, new Date(flexFromDate), yesterday, onProgress);
+          const range = await fetchFlexQueryRange(
+            flexConfig,
+            new Date(flexFromDate),
+            yesterday,
+            onProgress,
+          );
           if (!range.success) {
             throw new Error(range.error || "Failed to fetch data from IBKR");
           }
@@ -273,7 +287,6 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         setParsedData(rows);
         setLoadingMessage("");
         processDataToStep2(rows);
-
       } else {
         // Parse manual CSV files
         setLoadingMessage("Parsing CSV files...");
@@ -289,11 +302,27 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
       setIsLoadingData(false);
       setLoadingMessage(`Error: ${errorMessage}`);
     }
-  }, [dataSource, flexToken, flexQueryId, flexFromDate, rememberCredentials, ctx, selectedFiles, processDataToStep2, parseMultipleCsvFiles]);
+  }, [
+    dataSource,
+    flexToken,
+    flexQueryId,
+    flexFromDate,
+    rememberCredentials,
+    ctx,
+    selectedFiles,
+    processDataToStep2,
+    parseMultipleCsvFiles,
+  ]);
 
   // Process manual CSV data when it's ready
   useEffect(() => {
-    if (manualParsedData && manualParsedData.length > 0 && currentStep === 1 && !isParsing && dataSource === "manual") {
+    if (
+      manualParsedData &&
+      manualParsedData.length > 0 &&
+      currentStep === 1 &&
+      !isParsing &&
+      dataSource === "manual"
+    ) {
       setParsedData(manualParsedData);
       processDataToStep2(manualParsedData);
     }
@@ -313,7 +342,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   const prepareTransactionGroups = async (
     rows: CsvRowData[],
     previews: AccountPreview[],
-    errors: string[]
+    errors: string[],
   ): Promise<TransactionGroup[] | null> => {
     let activitiesWithFX: ActivityImport[] = [];
     // 2. Process data, resolve tickers, convert to activities
@@ -324,7 +353,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         ctx?.api?.market?.searchTicker,
         (current, total) => {
           if (isMountedRef.current) setResolutionProgress({ current, total });
-        }
+        },
       );
       // Check if still mounted after async operation
       if (!isMountedRef.current) return [];
@@ -356,10 +385,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     // 3. Fetch existing activities for deduplication
     let existingActivities: import("../types").ActivityFingerprint[] = [];
     try {
-      const fetchResult = await fetchExistingActivitiesForDedup(
-        ctx?.api?.activities,
-        previews
-      );
+      const fetchResult = await fetchExistingActivitiesForDedup(ctx?.api?.activities, previews);
       // Check if still mounted after async operation
       if (!isMountedRef.current) return [];
       existingActivities = fetchResult.activities;
@@ -413,7 +439,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
       const result = await refreshAndUpdateAccountPreviews(
         ctx?.api?.accounts,
         accountPreviews,
-        accounts
+        accounts,
       );
       // Check if still mounted after async operation
       if (!isMountedRef.current) return;
@@ -433,7 +459,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     const allGroups: TransactionGroup[] = [];
     for (const partition of partitionByIbkrAccount(parsedData)) {
       const partitionPreviews = updatedPreviews.filter(
-        (p) => (p.ibkrAccount ?? "") === partition.ibkrAccount
+        (p) => (p.ibkrAccount ?? "") === partition.ibkrAccount,
       );
       const groups = await prepareTransactionGroups(partition.rows, partitionPreviews, errors);
       if (groups === null) {
@@ -472,13 +498,17 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
     // Track created/existing accounts per IBKR account and currency
     // (avoid mutating state directly)
-    const accountKey = (ibkrAccount: string | undefined, currency: string) => `${ibkrAccount ?? ""}|${currency}`;
+    const accountKey = (ibkrAccount: string | undefined, currency: string) =>
+      `${ibkrAccount ?? ""}|${currency}`;
     const accountsByKey = new Map<string, Account>();
 
     // Initialize with existing accounts from previews
     for (const preview of accountPreviews) {
       if (preview.existingAccount) {
-        accountsByKey.set(accountKey(preview.ibkrAccount, preview.currency), preview.existingAccount);
+        accountsByKey.set(
+          accountKey(preview.ibkrAccount, preview.currency),
+          preview.existingAccount,
+        );
       }
     }
 
@@ -518,7 +548,10 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
       // Pre-create any additional accounts needed for transaction currencies
       // This prevents race conditions during the import phase
-      const accountsNeeded = new Map<string, { ibkrAccount?: string; ibkrLabel?: string; currency: string }>();
+      const accountsNeeded = new Map<
+        string,
+        { ibkrAccount?: string; ibkrLabel?: string; currency: string }
+      >();
       for (const group of transactionGroups) {
         for (const txn of group.transactions) {
           const currency = txn.currency || group.currency;
@@ -605,13 +638,18 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
 
             if (transactionsWithAccountId.length > 0) {
               try {
-                const outcome = await importValidated(ctx.api.activities, transactionsWithAccountId);
+                const outcome = await importValidated(
+                  ctx.api.activities,
+                  transactionsWithAccountId,
+                );
                 groupTotalImported += outcome.imported;
                 groupTotalFailed += outcome.failed;
                 groupErrors.push(...outcome.errors);
               } catch (importError) {
                 groupTotalFailed += transactionsWithAccountId.length;
-                groupErrors.push(`Import failed for ${txnCurrency}: ${getErrorMessage(importError)}`);
+                groupErrors.push(
+                  `Import failed for ${txnCurrency}: ${getErrorMessage(importError)}`,
+                );
               }
             }
           }

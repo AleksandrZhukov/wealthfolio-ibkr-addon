@@ -19,24 +19,54 @@ const corporateAction = (description: string, extra: Record<string, string> = {}
 
 describe("stock splits from IBKR corporate actions", () => {
   it("parses forward and reverse split ratios", () => {
-    expect(parseSplitRatio("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)")).toBe(10);
-    expect(parseSplitRatio("XYZ(US0000000000) SPLIT 1 FOR 20 (XYZ.OLD, XYZ CORP, US0000000000)")).toBe(0.05);
+    expect(
+      parseSplitRatio("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)"),
+    ).toBe(10);
+    expect(
+      parseSplitRatio("XYZ(US0000000000) SPLIT 1 FOR 20 (XYZ.OLD, XYZ CORP, US0000000000)"),
+    ).toBe(0.05);
     expect(parseSplitRatio("AAPL(US0378331005) CASH DIVIDEND USD 0.26 PER SHARE")).toBeUndefined();
   });
 
   it("imports a forward split as a SPLIT activity with the ratio as amount", async () => {
-    const { processedData } = preprocessIBKRData([corporateAction("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)")] as any);
-    const previews = [{ currency: "USD", name: "T - USD", existingAccount: { id: "a", name: "T - USD", currency: "USD" } }];
+    const { processedData } = preprocessIBKRData([
+      corporateAction("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)"),
+    ] as any);
+    const previews = [
+      {
+        currency: "USD",
+        name: "T - USD",
+        existingAccount: { id: "a", name: "T - USD", currency: "USD" },
+      },
+    ];
     const { activities } = await convertToActivityImports(processedData as any, previews as any);
     expect(activities).toHaveLength(1);
-    expect(activities[0]).toMatchObject({ activityType: "SPLIT", symbol: "NFLX", amount: 10, quantity: 0, date: "2025-11-17" });
+    expect(activities[0]).toMatchObject({
+      activityType: "SPLIT",
+      symbol: "NFLX",
+      amount: 10,
+      quantity: 0,
+      date: "2025-11-17",
+    });
   });
 
   it("takes the date from Date/Time when the Corporate Actions row has no Date", async () => {
-    const row = corporateAction("NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)", { Date: "", TradeDate: "2025-11-14 202500" });
+    const row = corporateAction(
+      "NFLX(US64110L1061) SPLIT 10 FOR 1 (NFLX, NETFLIX INC, US64110L1061)",
+      { Date: "", TradeDate: "2025-11-14 202500" },
+    );
     const { processedData } = preprocessIBKRData([row] as any);
-    const previews = [{ currency: "USD", name: "T - USD", existingAccount: { id: "a", name: "T - USD", currency: "USD" } }];
-    const { activities, errors } = await convertToActivityImports(processedData as any, previews as any);
+    const previews = [
+      {
+        currency: "USD",
+        name: "T - USD",
+        existingAccount: { id: "a", name: "T - USD", currency: "USD" },
+      },
+    ];
+    const { activities, errors } = await convertToActivityImports(
+      processedData as any,
+      previews as any,
+    );
     expect(errors).toEqual([]);
     expect(activities[0]).toMatchObject({ activityType: "SPLIT", amount: 10, date: "2025-11-14" });
   });
