@@ -1,17 +1,10 @@
-import { Card, Page, PageContent, PageHeader } from "@wealthfolio/ui";
+import { Card } from "@wealthfolio/ui";
 import type { Account, AddonContext, ActivityImport } from "@wealthfolio/addon-sdk";
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { debug } from "../lib/debug-logger";
 import { getErrorMessage } from "../lib/shared-utils";
 import { detectCurrenciesFromIBKR } from "../lib/currency-detector";
 import { generateAccountNames } from "../lib/account-name-generator";
-import {
-  fetchFlexQuery,
-  fetchFlexQueryRange,
-  validateFlexToken,
-  validateQueryId,
-} from "../lib/flex-query-fetcher";
-import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
 import { dropHostDuplicates, importValidated } from "../lib/validated-import";
 import { accountNamePrefix, findIbkrAccount, partitionByIbkrAccount } from "../lib/ibkr-accounts";
 import {
@@ -22,18 +15,14 @@ import {
   groupActivitiesByCurrency,
   createTransactionGroups,
 } from "../lib/import-orchestrator";
-import StepIndicator from "../components/step-indicator";
+import StepIndicator from "./step-indicator";
 import { useMultiCsvParser } from "../hooks/use-multi-csv-parser";
-import { IBKRSourceSelectionStep, DataSource } from "../components/ibkr-source-selection-step";
-import { IBKRCurrencyPreviewStep } from "../components/ibkr-currency-preview-step";
-import { IBKRTickerPreviewStep } from "../components/ibkr-ticker-preview-step";
-import { IBKRImportResultsStep } from "../components/ibkr-import-results-step";
+import { IBKRSourceSelectionStep } from "./ibkr-source-selection-step";
+import { IBKRCurrencyPreviewStep } from "./ibkr-currency-preview-step";
+import { IBKRTickerPreviewStep } from "./ibkr-ticker-preview-step";
+import { IBKRImportResultsStep } from "./ibkr-import-results-step";
 import { CsvRowData } from "../presets/types";
 import type { AccountPreview, TransactionGroup, ImportResult, ProgressInfo } from "../types";
-
-// Secret keys for stored credentials
-const SECRET_FLEX_TOKEN = "flex_token";
-const SECRET_QUERY_ID = "flex_query_id";
 
 const STEPS = [
   { id: 1, title: "Source & Group" },
@@ -42,28 +31,31 @@ const STEPS = [
   { id: 4, title: "Import Results" },
 ];
 
-interface IBKRMultiImportPageProps {
-  ctx?: AddonContext;
+/** Totals of a finished import, summed over all account groups. */
+export interface WizardOutcome {
+  imported: number;
+  failed: number;
 }
 
-const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
+export interface ImportWizardProps {
+  ctx: AddonContext;
+  /** Rows already fetched (first sync of a connection); the wizard opens at step 2. */
+  initial?: { groupName: string; rows: CsvRowData[] };
+  /** `null` when the user leaves before importing. */
+  onClose: (outcome: WizardOutcome | null) => void;
+}
+
+export const ImportWizard: React.FC<ImportWizardProps> = ({ ctx, initial, onClose }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
   // Step 1: Source selection state
-  const [groupName, setGroupName] = useState("");
-  const [dataSource, setDataSource] = useState<DataSource>("manual");
-  const [flexToken, setFlexToken] = useState("");
-  const [flexQueryId, setFlexQueryId] = useState("");
-  // Optional YYYY-MM-DD start date; when set, fetch history up to today in 365-day chunks
-  const [flexFromDate, setFlexFromDate] = useState("");
-  const [showToken, setShowToken] = useState(false);
-  const [rememberCredentials, setRememberCredentials] = useState(true);
+  const [groupName, setGroupName] = useState(initial?.groupName ?? "");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
-  // Parsed data (unified from both sources)
+  // Parsed CSV rows
   const [parsedData, setParsedData] = useState<CsvRowData[]>([]);
 
   // CSV Parser hook (for manual uploads)
@@ -72,7 +64,6 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     errors: parsingErrors,
     isParsing,
     parseMultipleCsvFiles,
-    resetParserStates,
   } = useMultiCsvParser();
 
   // Step 2 state
@@ -87,6 +78,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<ProgressInfo | undefined>();
   const [importResults, setImportResults] = useState<ImportResult[]>([]);
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
 
   // Track if component is mounted (for async operation cleanup)
   const isMountedRef = useRef(true);
@@ -97,10 +89,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     };
   }, []);
 
-  // AbortController for cancelling in-progress operations on reset
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Load accounts and saved credentials
+  // Load accounts
   useEffect(() => {
     const loadData = async () => {
       if (!ctx?.api) return;
@@ -116,20 +105,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         }
       }
 
-      // Load saved credentials
-      if (ctx.api.secrets) {
-        try {
-          const [savedToken, savedQueryId] = await Promise.all([
-            ctx.api.secrets.get(SECRET_FLEX_TOKEN),
-            ctx.api.secrets.get(SECRET_QUERY_ID),
-          ]);
-          if (!isMountedRef.current) return;
-          if (savedToken) setFlexToken(savedToken);
-          if (savedQueryId) setFlexQueryId(savedQueryId);
-        } catch (e) {
-          debug.error("Failed to load saved credentials:", e);
-        }
-      }
+      if (isMountedRef.current) setAccountsLoaded(true);
     };
 
     loadData();
@@ -140,48 +116,6 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     () => [...new Set(accounts.map((a) => a.group).filter(Boolean))] as string[],
     [accounts],
   );
-
-  // Refresh accounts list from API
-  const refreshAccounts = async () => {
-    if (ctx?.api?.accounts) {
-      try {
-        const allAccounts = await ctx.api.accounts.getAll();
-        if (!isMountedRef.current) return;
-        setAccounts(allAccounts);
-      } catch (e) {
-        debug.error("Failed to refresh accounts:", e);
-      }
-    }
-  };
-
-  // Reset the entire import process
-  const resetImportProcess = async () => {
-    // Cancel any in-progress async operations
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-
-    // Reset loading states first
-    setIsLoadingData(false);
-    setIsResolving(false);
-    setIsImporting(false);
-
-    // Refresh accounts to pick up any newly created accounts from previous import
-    await refreshAccounts();
-
-    setCurrentStep(1);
-    setGroupName("");
-    setSelectedFiles([]);
-    setParsedData([]);
-    setAccountPreviews([]);
-    setTransactionGroups([]);
-    setImportResults([]);
-    setLoadingMessage("");
-    setResolutionProgress(undefined);
-    setImportProgress(undefined);
-    resetParserStates();
-  };
 
   // Process parsed data and advance to step 2 (memoized to prevent stale closures)
   const processDataToStep2 = useCallback(
@@ -209,124 +143,37 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     [groupName, accounts],
   );
 
-  // Step 1: Load data from selected source (memoized to ensure stable reference)
+  // Step 1: Parse the selected CSV files; the effect below advances to step 2
   const handleLoadData = useCallback(async () => {
     setIsLoadingData(true);
-
     try {
-      if (dataSource === "flexquery") {
-        // Fetch from Flex Query API
-        setLoadingMessage("Connecting to IBKR...");
-
-        const onProgress = (msg: string) => {
-          if (isMountedRef.current) setLoadingMessage(msg);
-        };
-        const flexConfig = { token: flexToken, queryId: flexQueryId };
-        let csvs: string[];
-        if (flexFromDate) {
-          // Activity statements are built end-of-day, so stop at yesterday.
-          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          const range = await fetchFlexQueryRange(
-            flexConfig,
-            new Date(flexFromDate),
-            yesterday,
-            onProgress,
-          );
-          if (!range.success) {
-            throw new Error(range.error || "Failed to fetch data from IBKR");
-          }
-          csvs = range.csvs;
-        } else {
-          const result = await fetchFlexQuery(flexConfig, { onProgress });
-          if (!result.success || !result.csv) {
-            throw new Error(result.error || "Failed to fetch data from IBKR");
-          }
-          csvs = [result.csv];
-        }
-
-        // Check if still mounted after async operation
-        if (!isMountedRef.current) return;
-
-        // Save credentials if requested (with validation)
-        if (rememberCredentials && ctx?.api?.secrets) {
-          const tokenValidation = validateFlexToken(flexToken);
-          const queryIdValidation = validateQueryId(flexQueryId);
-
-          if (tokenValidation.valid && queryIdValidation.valid) {
-            await Promise.all([
-              ctx.api.secrets.set(SECRET_FLEX_TOKEN, flexToken.trim()),
-              ctx.api.secrets.set(SECRET_QUERY_ID, flexQueryId.trim()),
-            ]);
-          } else {
-            // Log validation failures but don't block the import
-            debug.warn("Credential validation failed, not saving:", {
-              tokenError: tokenValidation.error,
-              queryIdError: queryIdValidation.error,
-            });
-          }
-        }
-
-        // Check if still mounted before state updates
-        if (!isMountedRef.current) return;
-
-        // Parse the fetched CSV
-        setLoadingMessage("Parsing transactions...");
-        const rows = csvs.flatMap((csv) => {
-          if (!csv.trim()) return [];
-          const parsed = parseFlexQueryCSV(csv);
-          if (parsed.errors.length > 0) {
-            debug.warn("Parse warnings:", parsed.errors);
-          }
-          return parsed.rows;
-        });
-
-        if (rows.length === 0) {
-          throw new Error("The Flex statement has no trades or cash transactions for this period.");
-        }
-
-        setParsedData(rows);
-        setLoadingMessage("");
-        processDataToStep2(rows);
-      } else {
-        // Parse manual CSV files
-        setLoadingMessage("Parsing CSV files...");
-        await parseMultipleCsvFiles(selectedFiles);
-        // The useEffect below will handle advancing to step 2
-      }
+      setLoadingMessage("Parsing CSV files...");
+      await parseMultipleCsvFiles(selectedFiles);
     } catch (error) {
       debug.error("Error loading data:", error);
-      // Only update state if still mounted
       if (!isMountedRef.current) return;
       const errorMessage = error instanceof Error ? error.message : "Failed to load data";
-      // Reset loading state first, then set error message to prevent race condition
       setIsLoadingData(false);
       setLoadingMessage(`Error: ${errorMessage}`);
     }
-  }, [
-    dataSource,
-    flexToken,
-    flexQueryId,
-    flexFromDate,
-    rememberCredentials,
-    ctx,
-    selectedFiles,
-    processDataToStep2,
-    parseMultipleCsvFiles,
-  ]);
+  }, [selectedFiles, parseMultipleCsvFiles]);
+
+  // Rows passed in skip step 1. Waits for accounts so step 2 finds the existing ones.
+  const initialHandledRef = useRef(false);
+  useEffect(() => {
+    if (!initial || !accountsLoaded || initialHandledRef.current) return;
+    initialHandledRef.current = true;
+    setParsedData(initial.rows);
+    processDataToStep2(initial.rows);
+  }, [initial, accountsLoaded, processDataToStep2]);
 
   // Process manual CSV data when it's ready
   useEffect(() => {
-    if (
-      manualParsedData &&
-      manualParsedData.length > 0 &&
-      currentStep === 1 &&
-      !isParsing &&
-      dataSource === "manual"
-    ) {
+    if (manualParsedData && manualParsedData.length > 0 && currentStep === 1 && !isParsing) {
       setParsedData(manualParsedData);
       processDataToStep2(manualParsedData);
     }
-  }, [manualParsedData, isParsing, currentStep, dataSource, processDataToStep2]);
+  }, [manualParsedData, isParsing, currentStep, processDataToStep2]);
 
   // Step 2: Update account preview (memoized to prevent child re-renders)
   const handleAccountPreviewChange = useCallback((index: number, name: string) => {
@@ -736,26 +583,13 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
+        if (initial) return null;
         return (
           <IBKRSourceSelectionStep
             accountGroup={{
               groupName,
               setGroupName,
               existingGroups,
-            }}
-            dataSource={dataSource}
-            setDataSource={setDataSource}
-            flexQuery={{
-              token: flexToken,
-              setToken: setFlexToken,
-              queryId: flexQueryId,
-              setQueryId: setFlexQueryId,
-              fromDate: flexFromDate,
-              setFromDate: setFlexFromDate,
-              showToken,
-              setShowToken,
-              rememberCredentials,
-              setRememberCredentials,
             }}
             csvFiles={{
               files: selectedFiles,
@@ -770,7 +604,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
           <IBKRCurrencyPreviewStep
             accountPreviews={accountPreviews}
             onAccountPreviewChange={handleAccountPreviewChange}
-            onBack={goToPreviousStep}
+            onBack={initial ? () => onClose(null) : goToPreviousStep}
             onNext={handleProceedToStep3}
           />
         );
@@ -790,7 +624,12 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
             isImporting={isImporting}
             importProgress={importProgress}
             results={importResults}
-            onReset={resetImportProcess}
+            onDone={() =>
+              onClose({
+                imported: importResults.reduce((sum, r) => sum + r.success, 0),
+                failed: importResults.reduce((sum, r) => sum + r.failed, 0),
+              })
+            }
           />
         );
       default:
@@ -799,34 +638,25 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
   };
 
   return (
-    <Page>
-      <PageHeader heading="IBKR Multi-Currency Import" />
-      <PageContent withPadding={false}>
-        <div className="px-2 pt-2 pb-6 sm:px-4 sm:pt-4 md:px-6 md:pt-6">
-          <Card className="w-full">
-            <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
-              <StepIndicator steps={STEPS} currentStep={currentStep} />
-            </div>
-            <div className="p-3 sm:p-6">
-              {loadingMessage && currentStep === 1 && (
-                <div className="mb-4 p-3 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 text-sm">
-                  {loadingMessage}
-                </div>
-              )}
-              {parsingErrors.length > 0 && currentStep === 1 && (
-                <div className="mb-4 p-3 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 text-sm">
-                  {parsingErrors.map((err, i) => (
-                    <div key={i}>{err.message}</div>
-                  ))}
-                </div>
-              )}
-              {renderStep()}
-            </div>
-          </Card>
-        </div>
-      </PageContent>
-    </Page>
+    <Card className="w-full">
+      <div className="border-b px-3 py-3 sm:px-6 sm:py-4">
+        <StepIndicator steps={STEPS} currentStep={currentStep} />
+      </div>
+      <div className="p-3 sm:p-6">
+        {loadingMessage && currentStep === 1 && (
+          <div className="mb-4 p-3 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 text-sm">
+            {loadingMessage}
+          </div>
+        )}
+        {parsingErrors.length > 0 && currentStep === 1 && (
+          <div className="mb-4 p-3 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 text-sm">
+            {parsingErrors.map((err, i) => (
+              <div key={i}>{err.message}</div>
+            ))}
+          </div>
+        )}
+        {renderStep()}
+      </div>
+    </Card>
   );
 };
-
-export default IBKRMultiImportPage;

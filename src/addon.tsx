@@ -1,7 +1,8 @@
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import IBKRMultiImportPage from "./pages/ibkr-multi-import-page";
+import { Page, PageContent, PageHeader } from "@wealthfolio/ui";
+import { ImportWizard } from "./components/import-wizard";
 import IBKRFlexSettingsPage from "./pages/ibkr-flex-settings-page";
 import { setHttpClient, createNetworkHttpClient } from "./lib/flex-query-fetcher";
 import { loadConfigsSafe, loadToken, updateConfigStatus } from "./lib/flex-config-storage";
@@ -87,7 +88,16 @@ export function enable(ctx: AddonContext) {
   ctx.router.add({
     id: ROUTE_IMPORT,
     path: `/addons/${ADDON_ID}`,
-    component: () => <IBKRMultiImportPage ctx={ctx} />,
+    component: () => (
+      <Page>
+        <PageHeader heading="IBKR Multi-Currency Import" />
+        <PageContent withPadding={false}>
+          <div className="px-2 pt-2 pb-6 sm:px-4 sm:pt-4 md:px-6 md:pt-6">
+            <ImportWizard ctx={ctx} onClose={() => {}} />
+          </div>
+        </PageContent>
+      </Page>
+    ),
   });
 
   ctx.router.add({

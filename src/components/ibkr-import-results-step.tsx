@@ -16,14 +16,14 @@ interface IBKRImportResultsStepProps {
   isImporting: boolean;
   importProgress?: { current: number; total: number; message?: string };
   results: ImportResult[];
-  onReset: () => void;
+  onDone: () => void;
 }
 
 export const IBKRImportResultsStep = ({
   isImporting,
   importProgress,
   results,
-  onReset,
+  onDone,
 }: IBKRImportResultsStepProps) => {
   const totalSuccess = results.reduce((sum, r) => sum + r.success, 0);
   const totalFailed = results.reduce((sum, r) => sum + r.failed, 0);
@@ -144,10 +144,7 @@ export const IBKRImportResultsStep = ({
       {/* Action Buttons */}
       {!isImporting && (
         <div className="flex justify-center">
-          <Button onClick={onReset}>
-            <Icons.Plus className="mr-2 h-4 w-4" />
-            Import More Files
-          </Button>
+          <Button onClick={onDone}>Done</Button>
         </div>
       )}
     </div>
