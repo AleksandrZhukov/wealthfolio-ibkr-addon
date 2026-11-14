@@ -10,6 +10,12 @@ import { FETCH_COOLDOWN_MS, MS_PER_HOUR } from "./constants";
 import { formatDateToISO, getErrorMessage } from "./shared-utils";
 import { debug } from "./debug-logger";
 import type { ActivityDetails } from "@wealthfolio/addon-sdk";
+import type { FlexQueryConfig } from "./flex-config-storage";
+
+/** Auto-fetch runs only after the first sync; that one always goes through the UI. */
+export function isAutoFetchReady(config: FlexQueryConfig): boolean {
+  return config.autoFetchEnabled && !!config.syncedThrough;
+}
 
 /**
  * Check if a config is still in cooldown period

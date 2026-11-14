@@ -8,7 +8,7 @@
 import { importValidated } from "./validated-import";
 import type { Account, AddonContext, ActivityImport } from "@wealthfolio/addon-sdk";
 import type { CsvRowData } from "../presets/types";
-import { fetchFlexQuery } from "./flex-query-fetcher";
+import { fetchFlexQuery, fetchFlexQueryRange } from "./flex-query-fetcher";
 import { parseFlexQueryCSV } from "./flex-csv-parser";
 import { detectCurrenciesFromIBKR } from "./currency-detector";
 import { accountNamePrefix, partitionByIbkrAccount } from "./ibkr-accounts";
@@ -23,6 +23,11 @@ import {
 } from "./auto-fetch-helpers";
 import { updateConfigStatus } from "./flex-config-storage";
 import type { FlexQueryConfig } from "./flex-config-storage";
+import { AsyncLock } from "./async-lock";
+import { getSyncRange, type SyncRange } from "./sync-range";
+
+/** One sync at a time across auto-fetch and `Sync now`, so two runs never import the same window. */
+export const syncLock = new AsyncLock();
 
 /**
  * Toast function type from sonner library (injected by host app)
@@ -68,32 +73,58 @@ export interface ProcessConfigDeps {
     currencies: string[],
     ibkr?: { ibkrAccount: string; label: string },
   ) => Promise<Map<string, Account>>;
+  onProgress?: (message: string) => void;
 }
 
 /**
- * Fetch and parse CSV from IBKR Flex Query
+ * Fetch and parse CSV from IBKR Flex Query for `range`. A failed range chunk
+ * fails the whole fetch: the chunks that did arrive are discarded, so a
+ * partial window is never imported.
  */
 export async function fetchAndParseFlexQuery(
   token: string,
   queryId: string,
   configName: string,
-  logger?: AddonContext["api"]["logger"],
+  logger: AddonContext["api"]["logger"] | undefined,
+  range: SyncRange,
+  onProgress?: (message: string) => void,
 ): Promise<{ success: true; rows: CsvRowData[] } | { success: false; error: string }> {
-  const result = await fetchFlexQuery(
-    { token, queryId },
-    { onProgress: (msg) => logger?.trace(`IBKR auto-fetch [${configName}]: ${msg}`) },
-  );
+  const progress = (msg: string) => {
+    logger?.trace(`IBKR auto-fetch [${configName}]: ${msg}`);
+    onProgress?.(msg);
+  };
 
-  if (!result.success || !result.csv) {
-    return { success: false, error: result.error || "Fetch failed" };
+  let csvs: string[];
+  if (range.from === null) {
+    const result = await fetchFlexQuery({ token, queryId }, { onProgress: progress });
+    if (!result.success || !result.csv) {
+      return { success: false, error: result.error || "Fetch failed" };
+    }
+    csvs = [result.csv];
+  } else {
+    const result = await fetchFlexQueryRange(
+      { token, queryId },
+      new Date(range.from),
+      new Date(range.to),
+      progress,
+    );
+    if (!result.success) {
+      return { success: false, error: result.error || "Fetch failed" };
+    }
+    csvs = result.csvs;
   }
 
-  const parsed = parseFlexQueryCSV(result.csv);
-  if (parsed.errors.length > 0) {
-    logger?.warn(`IBKR auto-fetch [${configName}]: Parse warnings: ${parsed.errors.join(", ")}`);
+  const rows: CsvRowData[] = [];
+  for (const csv of csvs) {
+    if (!csv.trim()) continue;
+    const parsed = parseFlexQueryCSV(csv);
+    if (parsed.errors.length > 0) {
+      logger?.warn(`IBKR auto-fetch [${configName}]: Parse warnings: ${parsed.errors.join(", ")}`);
+    }
+    rows.push(...parsed.rows);
   }
 
-  return { success: true, rows: parsed.rows };
+  return { success: true, rows };
 }
 
 /**
@@ -183,6 +214,7 @@ export async function processFlexQueryConfig(
   deps: ProcessConfigDeps,
 ): Promise<ConfigProcessResult> {
   const { ctx, token, getOrCreateAccountsForGroup } = deps;
+  const range = getSyncRange(config, new Date());
   const toastId = `ibkr-fetch-${config.id}`;
   const toast = getToast();
 
@@ -196,6 +228,8 @@ export async function processFlexQueryConfig(
       config.queryId,
       config.name,
       ctx.api.logger,
+      range,
+      deps.onProgress,
     );
 
     if (!fetchResult.success) {
@@ -208,7 +242,10 @@ export async function processFlexQueryConfig(
     if (rows.length === 0) {
       ctx.api.logger?.info(`IBKR auto-fetch [${config.name}]: No transactions found`);
       try {
-        await updateConfigStatus(ctx.api.secrets, config.id, createSuccessStatus());
+        await updateConfigStatus(ctx.api.secrets, config.id, {
+          ...createSuccessStatus(),
+          syncedThrough: range.to,
+        });
       } catch (saveError) {
         ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: Failed to save status`);
       }
@@ -274,9 +311,15 @@ export async function processFlexQueryConfig(
       importResult.failedAccounts.push(...partitionResult.failedAccounts);
     }
 
-    // 5. Update config status
+    // 5. Update config status. Rejected rows keep syncedThrough, so the next sync retries the window.
     try {
-      await updateConfigStatus(ctx.api.secrets, config.id, createSuccessStatus());
+      await updateConfigStatus(
+        ctx.api.secrets,
+        config.id,
+        importResult.failed === 0
+          ? { ...createSuccessStatus(), syncedThrough: range.to }
+          : createSuccessStatus(),
+      );
     } catch (saveError) {
       ctx.api.logger?.warn(`IBKR auto-fetch [${config.name}]: Failed to save success status`);
     }
@@ -347,5 +390,19 @@ export async function processFlexQueryConfig(
       failedAccounts: [],
       error: userFriendlyError,
     };
+  }
+}
+
+/** Run one sync for `config` under `syncLock`; `"busy"` when another sync is running. */
+export async function syncNow(
+  config: FlexQueryConfig,
+  deps: ProcessConfigDeps,
+): Promise<ConfigProcessResult | "busy"> {
+  const release = syncLock.tryAcquire();
+  if (!release) return "busy";
+  try {
+    return await processFlexQueryConfig(config, deps);
+  } finally {
+    release();
   }
 }

@@ -1,4 +1,5 @@
-import type { Account } from "@wealthfolio/addon-sdk";
+import type { Account, AddonContext } from "@wealthfolio/addon-sdk";
+import { generateAccountNames } from "./account-name-generator";
 import type { CsvRowData } from "../presets/types";
 
 /** Rows of one IBKR account (ClientAccountID) within a statement. */
@@ -51,4 +52,62 @@ export function findIbkrAccount(
         )
       : undefined) ?? accounts.find((a) => a.name === target.name && a.currency === target.currency)
   );
+}
+
+/**
+ * Get or create accounts for each currency in an account group
+ */
+export async function getOrCreateAccountsForGroup(
+  api: Pick<AddonContext["api"], "accounts" | "logger">,
+  accountGroup: string,
+  currencies: string[],
+  ibkr?: { ibkrAccount: string; label: string },
+): Promise<Map<string, Account>> {
+  const accountsByCurrency = new Map<string, Account>();
+
+  // Get existing accounts
+  const allAccounts = (await api.accounts?.getAll()) || [];
+  const groupAccounts = allAccounts.filter((a) => a.group === accountGroup);
+  const ibkrAccount = ibkr?.ibkrAccount || undefined;
+
+  // Generate expected account names
+  const expectedNames = generateAccountNames(
+    accountGroup,
+    currencies,
+    ibkrAccount ? ibkr?.label : undefined,
+  );
+
+  for (const expected of expectedNames) {
+    // Check if account exists (by IBKR account number, then by name)
+    const existing = findIbkrAccount(groupAccounts, { ...expected, ibkrAccount });
+
+    if (existing) {
+      accountsByCurrency.set(expected.currency, existing);
+    } else {
+      // Create new account
+      try {
+        const newAccount = await api.accounts?.create({
+          name: expected.name,
+          currency: expected.currency,
+          group: accountGroup,
+          accountNumber: ibkrAccount,
+          accountType: "SECURITIES",
+          trackingMode: "TRANSACTIONS",
+          isDefault: false,
+          isActive: true,
+        });
+        if (newAccount) {
+          accountsByCurrency.set(expected.currency, newAccount);
+          api.logger?.info(`Created account: ${expected.name}`);
+        } else {
+          // API returned null/undefined without throwing - treat as error
+          api.logger?.error(`Failed to create account ${expected.name}: API returned null`);
+        }
+      } catch (e) {
+        api.logger?.error(`Failed to create account ${expected.name}: ${e}`);
+      }
+    }
+  }
+
+  return accountsByCurrency;
 }

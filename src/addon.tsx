@@ -1,24 +1,23 @@
-import type { AddonContext, Account } from "@wealthfolio/addon-sdk";
+import type { AddonContext } from "@wealthfolio/addon-sdk";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import IBKRMultiImportPage from "./pages/ibkr-multi-import-page";
 import IBKRFlexSettingsPage from "./pages/ibkr-flex-settings-page";
 import { setHttpClient, createNetworkHttpClient } from "./lib/flex-query-fetcher";
 import { loadConfigsSafe, loadToken, updateConfigStatus } from "./lib/flex-config-storage";
-import { generateAccountNames } from "./lib/account-name-generator";
-import { findIbkrAccount } from "./lib/ibkr-accounts";
-import { AsyncLock } from "./lib/async-lock";
+import { getOrCreateAccountsForGroup } from "./lib/ibkr-accounts";
 import { QUERY_STALE_TIME_MS, AUTO_FETCH_DEBOUNCE_MS } from "./lib/constants";
-import { isConfigInCooldown, createPendingStatus } from "./lib/auto-fetch-helpers";
-import { processFlexQueryConfig } from "./lib/auto-fetch-processor";
+import {
+  isConfigInCooldown,
+  createPendingStatus,
+  isAutoFetchReady,
+} from "./lib/auto-fetch-helpers";
+import { processFlexQueryConfig, syncLock } from "./lib/auto-fetch-processor";
 import { getErrorMessage } from "./lib/shared-utils";
 
 const ADDON_ID = "ibkr-multi-import";
 const ROUTE_IMPORT = "import";
 const ROUTE_SETTINGS = "settings";
-
-// Lock for preventing concurrent auto-fetch operations
-const autoFetchLock = new AsyncLock();
 
 /**
  * Create a debounced version of a function with cleanup support
@@ -102,69 +101,12 @@ export function enable(ctx: AddonContext) {
   });
 
   /**
-   * Get or create accounts for each currency in an account group
-   */
-  async function getOrCreateAccountsForGroup(
-    accountGroup: string,
-    currencies: string[],
-    ibkr?: { ibkrAccount: string; label: string },
-  ): Promise<Map<string, Account>> {
-    const accountsByCurrency = new Map<string, Account>();
-
-    // Get existing accounts
-    const allAccounts = (await ctx.api.accounts?.getAll()) || [];
-    const groupAccounts = allAccounts.filter((a) => a.group === accountGroup);
-    const ibkrAccount = ibkr?.ibkrAccount || undefined;
-
-    // Generate expected account names
-    const expectedNames = generateAccountNames(
-      accountGroup,
-      currencies,
-      ibkrAccount ? ibkr?.label : undefined,
-    );
-
-    for (const expected of expectedNames) {
-      // Check if account exists (by IBKR account number, then by name)
-      const existing = findIbkrAccount(groupAccounts, { ...expected, ibkrAccount });
-
-      if (existing) {
-        accountsByCurrency.set(expected.currency, existing);
-      } else {
-        // Create new account
-        try {
-          const newAccount = await ctx.api.accounts?.create({
-            name: expected.name,
-            currency: expected.currency,
-            group: accountGroup,
-            accountNumber: ibkrAccount,
-            accountType: "SECURITIES",
-            trackingMode: "TRANSACTIONS",
-            isDefault: false,
-            isActive: true,
-          });
-          if (newAccount) {
-            accountsByCurrency.set(expected.currency, newAccount);
-            ctx.api.logger?.info(`Created account: ${expected.name}`);
-          } else {
-            // API returned null/undefined without throwing - treat as error
-            ctx.api.logger?.error(`Failed to create account ${expected.name}: API returned null`);
-          }
-        } catch (e) {
-          ctx.api.logger?.error(`Failed to create account ${expected.name}: ${e}`);
-        }
-      }
-    }
-
-    return accountsByCurrency;
-  }
-
-  /**
    * Auto-fetch and import for all enabled configs
    * Orchestrates the fetch process while delegating actual processing to auto-fetch-processor
    */
   const performAutoFetch = async () => {
     // Use lock to prevent concurrent fetches (tryAcquire for non-blocking check)
-    const release = autoFetchLock.tryAcquire();
+    const release = syncLock.tryAcquire();
     if (!release) {
       ctx.api.logger?.trace("IBKR auto-fetch skipped: fetch already in progress");
       return;
@@ -185,7 +127,7 @@ export function enable(ctx: AddonContext) {
         return;
       }
       const configs = loadResult.configs ?? [];
-      const enabledConfigs = configs.filter((c) => c.autoFetchEnabled);
+      const enabledConfigs = configs.filter(isAutoFetchReady);
 
       if (enabledConfigs.length === 0) {
         ctx.api.logger?.trace("IBKR auto-fetch skipped: no auto-fetch configs enabled");
@@ -236,7 +178,7 @@ export function enable(ctx: AddonContext) {
         await processFlexQueryConfig(config, {
           ctx,
           token,
-          getOrCreateAccountsForGroup,
+          getOrCreateAccountsForGroup: (g, c, i) => getOrCreateAccountsForGroup(ctx.api, g, c, i),
         });
       }
     } catch (error) {

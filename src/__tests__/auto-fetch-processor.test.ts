@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   importActivitiesToAccounts,
   fetchAndParseFlexQuery,
   processFlexQueryConfig,
+  syncLock,
+  syncNow,
 } from "../lib/auto-fetch-processor";
 import type { Account, ActivityImport, AddonContext } from "@wealthfolio/addon-sdk";
 import type { FlexQueryConfig } from "../lib/flex-config-storage";
@@ -54,6 +56,10 @@ vi.mock("../lib/flex-query-fetcher", () => ({
   fetchFlexQuery: vi.fn().mockResolvedValue({
     success: true,
     csv: '"Header1","Header2"\n"Value1","Value2"',
+  }),
+  fetchFlexQueryRange: vi.fn().mockResolvedValue({
+    success: true,
+    csvs: ['"Header1","Header2"\n"Value1","Value2"'],
   }),
 }));
 
@@ -390,6 +396,8 @@ describe("Auto-Fetch Processor", () => {
   });
 
   describe("fetchAndParseFlexQuery", () => {
+    const periodRange = { from: null, to: "2026-11-13" };
+
     it("should fetch and parse CSV successfully", async () => {
       const { fetchFlexQuery } = await import("../lib/flex-query-fetcher");
       const { parseFlexQueryCSV } = await import("../lib/flex-csv-parser");
@@ -404,7 +412,13 @@ describe("Auto-Fetch Processor", () => {
         errors: [],
       });
 
-      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
+      const result = await fetchAndParseFlexQuery(
+        "test-token",
+        "12345",
+        "Test Config",
+        undefined,
+        periodRange,
+      );
 
       expect(result.success).toBe(true);
       if (result.success) {
@@ -421,7 +435,13 @@ describe("Auto-Fetch Processor", () => {
         error: "Network error",
       });
 
-      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
+      const result = await fetchAndParseFlexQuery(
+        "test-token",
+        "12345",
+        "Test Config",
+        undefined,
+        periodRange,
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -437,7 +457,13 @@ describe("Auto-Fetch Processor", () => {
         csv: undefined,
       });
 
-      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config");
+      const result = await fetchAndParseFlexQuery(
+        "test-token",
+        "12345",
+        "Test Config",
+        undefined,
+        periodRange,
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -466,7 +492,13 @@ describe("Auto-Fetch Processor", () => {
         error: vi.fn(),
       };
 
-      const result = await fetchAndParseFlexQuery("test-token", "12345", "Test Config", mockLogger);
+      const result = await fetchAndParseFlexQuery(
+        "test-token",
+        "12345",
+        "Test Config",
+        mockLogger,
+        periodRange,
+      );
 
       expect(result.success).toBe(true);
       expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining("Parse warnings"));
@@ -844,6 +876,143 @@ describe("Auto-Fetch Processor", () => {
       expect(mockCtx.api.logger.warn).toHaveBeenCalledWith(
         expect.stringContaining("2 conversion error(s)"),
       );
+    });
+
+    describe("incremental sync", () => {
+      const syncedConfig: FlexQueryConfig = {
+        ...mockConfig,
+        autoFetchEnabled: true,
+        syncedThrough: "2026-11-10",
+      };
+      const deps = () => ({
+        ctx: createMockContext() as unknown as AddonContext,
+        token: "test-token",
+        getOrCreateAccountsForGroup: vi.fn().mockResolvedValue(new Map([["USD", mockAccount]])),
+      });
+      const activity = {
+        date: "2026-11-12",
+        symbol: "AAPL",
+        activityType: "BUY",
+        quantity: 10,
+        unitPrice: 150,
+        fee: 1,
+        currency: "USD",
+      } as ActivityImport;
+
+      async function mockOneActivity() {
+        const { processAndResolveData } = await import("../lib/import-orchestrator");
+        const { deduplicateActivities } = await import("../lib/activity-deduplicator");
+        vi.mocked(processAndResolveData).mockResolvedValueOnce({
+          activities: [activity],
+          conversionErrors: [],
+          skippedCount: 0,
+          skippedFXConversions: [],
+        });
+        vi.mocked(deduplicateActivities).mockResolvedValueOnce({
+          toImport: [{ ...activity, accountId: "acc-1" }],
+          duplicatesSkipped: 0,
+        });
+      }
+
+      async function lastStatus() {
+        const { updateConfigStatus } = await import("../lib/flex-config-storage");
+        return vi.mocked(updateConfigStatus).mock.lastCall?.[2];
+      }
+
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ["Date"] });
+        vi.setSystemTime(new Date("2026-11-14T12:00:00Z"));
+      });
+
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it("fetches from syncedThrough minus 7 days to yesterday", async () => {
+        const { fetchFlexQueryRange } = await import("../lib/flex-query-fetcher");
+        await processFlexQueryConfig(syncedConfig, deps());
+        expect(fetchFlexQueryRange).toHaveBeenCalledWith(
+          expect.objectContaining({ token: "test-token", queryId: "12345" }),
+          new Date("2026-11-03"),
+          new Date("2026-11-13"),
+          expect.any(Function),
+        );
+      });
+
+      it("uses the query Period on a first sync without historyFrom", async () => {
+        const { fetchFlexQuery, fetchFlexQueryRange } = await import("../lib/flex-query-fetcher");
+        await processFlexQueryConfig({ ...mockConfig, autoFetchEnabled: true }, deps());
+        expect(fetchFlexQuery).toHaveBeenCalledWith(
+          { token: "test-token", queryId: "12345" },
+          expect.anything(),
+        );
+        expect(fetchFlexQueryRange).not.toHaveBeenCalled();
+      });
+
+      it("advances syncedThrough after a clean import", async () => {
+        const { updateConfigStatus } = await import("../lib/flex-config-storage");
+        await mockOneActivity();
+        const result = await processFlexQueryConfig(syncedConfig, deps());
+        expect(result.imported).toBe(1);
+        expect(updateConfigStatus).toHaveBeenLastCalledWith(
+          expect.anything(),
+          syncedConfig.id,
+          expect.objectContaining({ syncedThrough: "2026-11-13" }),
+        );
+      });
+
+      it("advances syncedThrough when the range has no transactions", async () => {
+        const { parseFlexQueryCSV } = await import("../lib/flex-csv-parser");
+        vi.mocked(parseFlexQueryCSV).mockReturnValueOnce({
+          rows: [],
+          errors: [],
+          headers: [],
+          rowCount: 0,
+        });
+        await processFlexQueryConfig(syncedConfig, deps());
+        expect(await lastStatus()).toHaveProperty("syncedThrough", "2026-11-13");
+      });
+
+      it("keeps syncedThrough when the host rejects rows", async () => {
+        await mockOneActivity();
+        const d = deps();
+        d.ctx.api.activities.import = vi.fn().mockRejectedValue(new Error("Import failed"));
+        const result = await processFlexQueryConfig(syncedConfig, d);
+        expect(result.failed).toBe(1);
+        expect(await lastStatus()).not.toHaveProperty("syncedThrough");
+      });
+
+      it("keeps syncedThrough and imports nothing when a range chunk fails", async () => {
+        const { fetchFlexQueryRange } = await import("../lib/flex-query-fetcher");
+        const { processAndResolveData } = await import("../lib/import-orchestrator");
+        vi.mocked(fetchFlexQueryRange).mockResolvedValueOnce({
+          success: false,
+          csvs: ['"Header1"\n"Value1"'],
+          error: "20250101–20251231 (2/3): boom",
+        });
+        const result = await processFlexQueryConfig(syncedConfig, deps());
+        expect(result.success).toBe(false);
+        expect(processAndResolveData).not.toHaveBeenCalled();
+        const status = await lastStatus();
+        expect(status).toHaveProperty("lastFetchStatus", "error");
+        expect(status).not.toHaveProperty("syncedThrough");
+      });
+
+      it("syncNow returns busy while another sync holds the lock", async () => {
+        const release = syncLock.tryAcquire()!;
+        expect(await syncNow(syncedConfig, deps())).toBe("busy");
+        release();
+      });
+
+      it("syncNow releases the lock after an error", async () => {
+        const { fetchFlexQueryRange } = await import("../lib/flex-query-fetcher");
+        vi.mocked(fetchFlexQueryRange).mockRejectedValueOnce(new Error("network down"));
+        const result = await syncNow(syncedConfig, deps());
+        expect(result).toMatchObject({ success: false });
+        const release = syncLock.tryAcquire();
+        expect(release).not.toBeNull();
+        release?.();
+      });
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   createErrorStatus,
   formatImportResultMessage,
   enrichIBKRErrorMessage,
+  isAutoFetchReady,
 } from "../lib/auto-fetch-helpers";
 import { FETCH_COOLDOWN_MS } from "../lib/constants";
 
@@ -518,4 +519,18 @@ describe("Auto-Fetch Helpers", () => {
       expect(result).toBe(genericError);
     });
   });
+});
+
+describe("isAutoFetchReady", () => {
+  const base = { id: "1", name: "Main", queryId: "123456", accountGroup: "IBKR" };
+  it("is not ready before the first sync", () =>
+    expect(isAutoFetchReady({ ...base, autoFetchEnabled: true })).toBe(false));
+  it("is ready when enabled and synced", () =>
+    expect(isAutoFetchReady({ ...base, autoFetchEnabled: true, syncedThrough: "2026-11-13" })).toBe(
+      true,
+    ));
+  it("is not ready when disabled", () =>
+    expect(
+      isAutoFetchReady({ ...base, autoFetchEnabled: false, syncedThrough: "2026-11-13" }),
+    ).toBe(false));
 });
