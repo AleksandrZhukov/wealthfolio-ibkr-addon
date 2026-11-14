@@ -287,6 +287,12 @@ export function filterDuplicateActivities(
   let debugLogCount = 0;
 
   for (const activity of newActivities) {
+    // The host's import check matches rows with an ID, including against
+    // activities stored before IDs existed.
+    if (activity.sourceRecordId) {
+      unique.push(activity);
+      continue;
+    }
     const fingerprint = createActivityFingerprint(activity);
     const txid = extractIbkrTransactionId(activity.comment);
     // IBKR repeats identical postings (e.g. same-day tax charge/reversal

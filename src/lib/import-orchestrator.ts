@@ -131,11 +131,38 @@ export async function processAndResolveData(
   }
 
   return {
-    activities: fxSplitResult.transactions,
+    activities: clearCollidingSourceIds(fxSplitResult.transactions, (m) => debug.warn(m)),
     conversionErrors: conversionResult.errors,
     skippedCount: conversionResult.skipped,
     skippedFXConversions: fxSplitResult.skippedConversions,
   };
+}
+
+/**
+ * Remove `sourceRecordId` from rows that share it within one currency account
+ * (e.g. one TransactionID reported in two Flex sections). The host would skip
+ * every row after the first as a batch duplicate; without an ID they fall
+ * back to value matching.
+ */
+export function clearCollidingSourceIds(
+  activities: ActivityImport[],
+  warn?: (message: string) => void,
+): ActivityImport[] {
+  const counts = new Map<string, number>();
+  for (const a of activities) {
+    if (!a.sourceRecordId) continue;
+    const key = `${a.currency}|${a.sourceRecordId}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of counts) {
+    if (count > 1)
+      warn?.(`IBKR TransactionID ${key} is on ${count} rows; importing them without it`);
+  }
+  return activities.map((a) => {
+    if (!a.sourceRecordId || counts.get(`${a.currency}|${a.sourceRecordId}`) === 1) return a;
+    const { sourceRecordId: _, ...rest } = a;
+    return rest;
+  });
 }
 
 /**

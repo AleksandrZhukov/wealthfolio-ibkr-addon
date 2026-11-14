@@ -681,6 +681,7 @@ export async function convertToActivityImports(
         ]
           .filter(Boolean)
           .join(" "),
+        ...(row.TransactionID?.trim() ? { sourceRecordId: row.TransactionID.trim() } : {}),
         isDraft: false,
         isValid: true,
       };

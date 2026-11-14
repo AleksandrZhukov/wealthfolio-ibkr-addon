@@ -242,6 +242,41 @@ describe("Activity Deduplicator", () => {
   });
 
   describe("filterDuplicateActivities", () => {
+    it("leaves rows with a source record ID to the host", () => {
+      const existingActivities = [
+        {
+          activityDate: "2024-01-15",
+          assetId: "AAPL",
+          activityType: "BUY",
+          quantity: 10,
+          unitPrice: 150.5,
+          currency: "USD",
+          fee: 1.0,
+          amount: 1505.0,
+        },
+      ];
+      const newActivity: ActivityImport = {
+        accountId: "acc1",
+        date: "2024-01-15",
+        symbol: "AAPL",
+        activityType: "BUY",
+        quantity: 10,
+        unitPrice: 150.5,
+        currency: "USD",
+        fee: 1.0,
+        amount: 1505.0,
+        comment: "",
+        sourceRecordId: "9",
+        isDraft: false,
+        isValid: true,
+      };
+
+      const { unique, duplicates } = filterDuplicateActivities([newActivity], existingActivities);
+
+      expect(unique).toEqual([newActivity]);
+      expect(duplicates).toEqual([]);
+    });
+
     it("should filter out duplicate activities", () => {
       const existingActivities = [
         {

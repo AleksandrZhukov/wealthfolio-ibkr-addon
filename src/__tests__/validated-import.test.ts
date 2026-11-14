@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { ActivityImport } from "@wealthfolio/addon-sdk";
-import { importValidated } from "../lib/validated-import";
+import { dropHostDuplicates, importValidated } from "../lib/validated-import";
 
 const row = (symbol: string, extra: Partial<ActivityImport> = {}): ActivityImport =>
   ({
@@ -67,5 +67,20 @@ describe("importValidated", () => {
     expect(result.imported).toBe(0);
     expect(result.failed).toBe(1);
     expect(result.errors[0]).toContain("quoteCcy");
+  });
+});
+
+describe("dropHostDuplicates", () => {
+  it("drops rows the host marks as stored or batch duplicates", async () => {
+    const checkImport = vi.fn(async (rows: ActivityImport[]) =>
+      rows.map((r, i) =>
+        i === 0 ? { ...r, duplicateOfId: "a1" } : i === 1 ? { ...r, duplicateOfLineNumber: 1 } : r,
+      ),
+    );
+    const [a, b, c] = [row("A"), row("B"), row("C")];
+    expect(await dropHostDuplicates({ checkImport }, [a, b, c])).toEqual({
+      toImport: [c],
+      duplicates: 2,
+    });
   });
 });

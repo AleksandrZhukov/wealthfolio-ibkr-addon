@@ -61,6 +61,8 @@ export interface TransactionGroup {
   transactions: ActivityImport[];
   /** Summary of transaction types */
   summary: TransactionSummary;
+  /** Rows the host already has, removed from `transactions` */
+  duplicates?: number;
   /** IBKR ClientAccountID the transactions came from */
   ibkrAccount?: string;
   /** IBKR AccountAlias (or ClientAccountID) used in account names */

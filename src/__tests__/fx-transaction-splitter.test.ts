@@ -283,6 +283,34 @@ describe("FX Transaction Splitter", () => {
       expect(deposit.symbol).toBe("$CASH-USD");
     });
 
+    it("gives FX legs their own IDs", () => {
+      const accountsByCurrency = new Map<string, Account>();
+      accountsByCurrency.set("GBP", createMockAccount("GBP"));
+      accountsByCurrency.set("USD", createMockAccount("USD"));
+      const transaction = { ...createFXTransaction("GBP.USD", -100, 1.26), sourceRecordId: "55" };
+
+      const [withdrawal, deposit] = splitFXConversions(
+        [transaction],
+        accountsByCurrency,
+      ).transactions;
+
+      expect(withdrawal.sourceRecordId).toBe("55:out");
+      expect(deposit.sourceRecordId).toBe("55:in");
+    });
+
+    it("gives FX legs no ID when the source row had none", () => {
+      const accountsByCurrency = new Map<string, Account>();
+      accountsByCurrency.set("GBP", createMockAccount("GBP"));
+      accountsByCurrency.set("USD", createMockAccount("USD"));
+
+      const legs = splitFXConversions(
+        [createFXTransaction("GBP.USD", -100, 1.26)],
+        accountsByCurrency,
+      ).transactions;
+
+      expect(legs.map((l) => "sourceRecordId" in l)).toEqual([false, false]);
+    });
+
     it("should use amount fallback when unitPrice is missing", () => {
       const accountsByCurrency = new Map<string, Account>();
       accountsByCurrency.set("GBP", createMockAccount("GBP"));

@@ -12,7 +12,7 @@ import {
   validateQueryId,
 } from "../lib/flex-query-fetcher";
 import { parseFlexQueryCSV } from "../lib/flex-csv-parser";
-import { importValidated } from "../lib/validated-import";
+import { dropHostDuplicates, importValidated } from "../lib/validated-import";
 import { accountNamePrefix, findIbkrAccount, partitionByIbkrAccount } from "../lib/ibkr-accounts";
 import {
   refreshAndUpdateAccountPreviews,
@@ -414,9 +414,43 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
     }
 
     // 5. Group by currency and create transaction groups
+    let groupedByCurrency: Map<string, ActivityImport[]>;
     try {
-      const groupedByCurrency = groupActivitiesByCurrency(dedupedActivities);
-      return createTransactionGroups(previews, groupedByCurrency);
+      groupedByCurrency = groupActivitiesByCurrency(dedupedActivities);
+    } catch (error) {
+      const msg = `Failed to group transactions: ${getErrorMessage(error)}`;
+      debug.error(msg);
+      errors.push(msg);
+      return [];
+    }
+
+    // 6. Drop rows the host already has. New accounts have nothing stored yet.
+    const duplicatesByCurrency = new Map<string, number>();
+    for (const preview of previews) {
+      const rows = groupedByCurrency.get(preview.currency);
+      const activitiesApi = ctx?.api?.activities;
+      if (!activitiesApi || !preview.existingAccount || !rows?.length) continue;
+      const accountId = preview.existingAccount.id;
+      try {
+        const { toImport, duplicates } = await dropHostDuplicates(
+          activitiesApi,
+          rows.map((a) => ({ ...a, accountId })),
+        );
+        if (!isMountedRef.current) return [];
+        groupedByCurrency.set(preview.currency, toImport);
+        duplicatesByCurrency.set(preview.currency, duplicates);
+      } catch (error) {
+        const msg = `Duplicate check failed for ${preview.name}: ${getErrorMessage(error)}`;
+        debug.warn(msg);
+        errors.push(msg);
+      }
+    }
+
+    try {
+      return createTransactionGroups(previews, groupedByCurrency).map((g) => ({
+        ...g,
+        duplicates: duplicatesByCurrency.get(g.currency) ?? 0,
+      }));
     } catch (error) {
       const msg = `Failed to group transactions: ${getErrorMessage(error)}`;
       debug.error(msg);
@@ -602,6 +636,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
         // Track totals for this group (including partial success)
         let groupTotalImported = 0;
         let groupTotalFailed = 0;
+        let groupTotalSkipped = 0;
         const groupErrors: string[] = [];
 
         try {
@@ -644,6 +679,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
                 );
                 groupTotalImported += outcome.imported;
                 groupTotalFailed += outcome.failed;
+                groupTotalSkipped += outcome.duplicates;
                 groupErrors.push(...outcome.errors);
               } catch (importError) {
                 groupTotalFailed += transactionsWithAccountId.length;
@@ -660,7 +696,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
             currency: group.currency,
             success: groupTotalImported,
             failed: groupTotalFailed,
-            skipped: 0, // Duplicates already removed in Step 3
+            skipped: groupTotalSkipped,
             errors: groupErrors,
           });
         } catch (error) {
@@ -672,7 +708,7 @@ const IBKRMultiImportPage: React.FC<IBKRMultiImportPageProps> = ({ ctx }) => {
             currency: group.currency,
             success: groupTotalImported, // Reflect partial success
             failed: group.transactions.length - groupTotalImported,
-            skipped: 0,
+            skipped: groupTotalSkipped,
             errors: [...groupErrors, errorMessage],
           });
         }

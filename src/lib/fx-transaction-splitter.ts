@@ -148,6 +148,7 @@ export function splitFXConversions(
       amount: Math.abs(sourceAmount),
       fee: 0,
       comment: comment || `FX conversion to ${targetCurrency}`,
+      ...legId(transaction, "out"),
       isDraft: false,
       isValid: true,
     };
@@ -163,6 +164,7 @@ export function splitFXConversions(
       amount: Math.abs(targetAmount),
       fee: 0,
       comment: comment || `FX conversion from ${sourceCurrency}`,
+      ...legId(transaction, "in"),
       isDraft: false,
       isValid: true,
     };
@@ -190,6 +192,13 @@ export function splitFXConversions(
  * Check if a transaction is an FX conversion
  * IBKR FX conversions have symbols like "GBP.USD", "EUR.USD", etc.
  */
+/** Each leg needs its own ID: the host treats a repeated ID in one account as a duplicate. */
+function legId(transaction: ActivityImport, leg: "out" | "in"): { sourceRecordId?: string } {
+  return transaction.sourceRecordId
+    ? { sourceRecordId: `${transaction.sourceRecordId}:${leg}` }
+    : {};
+}
+
 function isFXConversion(transaction: ActivityImport): boolean {
   // Check if symbol matches FX format: XXX.YYY (currency pair)
   const symbol = transaction.symbol || "";

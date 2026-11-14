@@ -5,8 +5,8 @@
   "description": "Import IBKR transactions via CSV files or Flex Query API with automatic multi-currency account creation",
   "author": "Nikolai Trukhin",
   "main": "dist/addon.js",
-  "sdkVersion": "3.9.0",
-  "minWealthfolioVersion": "3.9.0",
+  "sdkVersion": "3.13.0",
+  "minWealthfolioVersion": "3.13.0",
   "enabled": true,
   "contributes": {
     "routes": [
@@ -39,7 +39,7 @@
   },
   "hostDependencies": {
     "@tanstack/react-query": "^5.90.0",
-    "@wealthfolio/addon-sdk": "^3.9.0",
+    "@wealthfolio/addon-sdk": "^3.13.0",
     "@wealthfolio/ui": "^3.9.0",
     "lucide-react": "^0.561.0",
     "react": "^19.2.0",

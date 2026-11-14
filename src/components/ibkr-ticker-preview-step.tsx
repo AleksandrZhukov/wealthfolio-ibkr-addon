@@ -113,6 +113,11 @@ export const IBKRTickerPreviewStep = ({
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
                         {totalInGroup}
                       </span>
+                      {!!group.duplicates && (
+                        <span className="text-muted-foreground text-xs">
+                          {group.duplicates} already imported
+                        </span>
+                      )}
                     </div>
                   </div>
                 </AccordionTrigger>

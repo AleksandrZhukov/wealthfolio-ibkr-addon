@@ -14,6 +14,23 @@ interface ImportApi {
   import(activities: ActivityImport[]): Promise<ImportActivitiesResult>;
 }
 
+/**
+ * Rows the host does not already have. `checkImport` flags a stored match with
+ * `duplicateOfId` and a repeat within `activities` with `duplicateOfLineNumber`.
+ * Rows must already carry `accountId`: the host matches per account.
+ */
+export async function dropHostDuplicates(
+  api: Pick<ImportApi, "checkImport">,
+  activities: ActivityImport[],
+): Promise<{ toImport: ActivityImport[]; duplicates: number }> {
+  if (activities.length === 0) return { toImport: [], duplicates: 0 };
+  const checked = await api.checkImport(activities);
+  const toImport = activities.filter(
+    (_, i) => !checked[i]?.duplicateOfId && checked[i]?.duplicateOfLineNumber == null,
+  );
+  return { toImport, duplicates: activities.length - toImport.length };
+}
+
 function collectErrors(rows: ActivityImport[], into: Set<string>): void {
   for (const row of rows) {
     for (const [field, messages] of Object.entries(row.errors ?? {})) {
