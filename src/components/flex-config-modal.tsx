@@ -1,16 +1,14 @@
 import React from "react";
 import { Dialog, DialogContent } from "@wealthfolio/ui";
 import { FlexConfigForm } from "./flex-config-form";
-import type { FlexQueryConfig } from "../lib/flex-config-storage";
+import type { ConnectionFormData, FlexQueryConfig } from "../lib/flex-config-storage";
 
 interface FlexConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   config?: FlexQueryConfig; // undefined = add mode, defined = edit mode
   existingGroups: string[];
-  onSubmit: (
-    data: Omit<FlexQueryConfig, "id" | "lastFetchTime" | "lastFetchStatus" | "lastFetchError">,
-  ) => Promise<void>;
+  onSubmit: (data: ConnectionFormData) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -22,12 +20,7 @@ export const FlexConfigModal: React.FC<FlexConfigModalProps> = ({
   onSubmit,
   isSubmitting = false,
 }) => {
-  const handleSubmit = async (data: {
-    name: string;
-    queryId: string;
-    accountGroup: string;
-    autoFetchEnabled: boolean;
-  }) => {
+  const handleSubmit = async (data: ConnectionFormData) => {
     await onSubmit(data);
     onOpenChange(false);
   };

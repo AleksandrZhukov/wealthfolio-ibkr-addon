@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@wealthfolio/ui";
 import { Loader2 } from "lucide-react";
-import type { FlexQueryConfig } from "../lib/flex-config-storage";
+import type { ConnectionFormData, FlexQueryConfig } from "../lib/flex-config-storage";
 import { AccountGroupSuggestions } from "./account-group-suggestions";
 
 // Validation schema
@@ -22,14 +22,13 @@ const flexConfigSchema = z.object({
   queryId: z.string().min(1, "Query ID is required").regex(/^\d+$/, "Query ID must be numeric"),
   accountGroup: z.string().min(1, "Account group is required"),
   autoFetchEnabled: z.boolean(),
+  historyFrom: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]),
 });
-
-type FlexConfigFormData = z.infer<typeof flexConfigSchema>;
 
 interface FlexConfigFormProps {
   defaultValues?: Partial<FlexQueryConfig>;
   existingGroups: string[];
-  onSubmit: (data: FlexConfigFormData) => Promise<void>;
+  onSubmit: (data: ConnectionFormData) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -49,13 +48,14 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
     watch,
     setValue,
     formState: { errors },
-  } = useForm<FlexConfigFormData>({
+  } = useForm<ConnectionFormData>({
     resolver: zodResolver(flexConfigSchema),
     defaultValues: {
       name: defaultValues?.name || "",
       queryId: defaultValues?.queryId || "",
       accountGroup: defaultValues?.accountGroup || "",
       autoFetchEnabled: defaultValues?.autoFetchEnabled ?? false,
+      historyFrom: defaultValues?.historyFrom ?? "",
     },
   });
 
@@ -67,9 +67,7 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
     // button's click handler instead.
     <form onSubmit={(e) => e.preventDefault()}>
       <DialogHeader>
-        <DialogTitle>
-          {isEditing ? "Edit Flex Query Configuration" : "Add Flex Query Configuration"}
-        </DialogTitle>
+        <DialogTitle>{isEditing ? "Edit connection" : "Add connection"}</DialogTitle>
         <DialogDescription>
           Configure a Flex Query to fetch transactions for a specific account group.
         </DialogDescription>
@@ -111,6 +109,24 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
           </p>
         </div>
 
+        {/* First-sync start date */}
+        <div className="space-y-2">
+          <Label htmlFor="historyFrom">Import history from (optional)</Label>
+          <Input
+            id="historyFrom"
+            type="date"
+            max={new Date().toISOString().slice(0, 10)}
+            {...register("historyFrom")}
+          />
+          {errors.historyFrom && (
+            <p className="text-sm text-destructive">{errors.historyFrom.message}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Used for the first sync. Leave empty to use the query&apos;s Period. Changing it
+            re-imports from that date on the next sync.
+          </p>
+        </div>
+
         {/* Auto-fetch Toggle */}
         <div className="flex items-center justify-between rounded-lg border p-3">
           <div className="space-y-0.5">
@@ -140,7 +156,7 @@ export const FlexConfigForm: React.FC<FlexConfigFormProps> = ({
           ) : isEditing ? (
             "Save Changes"
           ) : (
-            "Add Configuration"
+            "Add connection"
           )}
         </Button>
       </DialogFooter>

@@ -12,10 +12,6 @@
     "routes": [
       {
         "id": "import"
-      },
-      {
-        "id": "settings",
-        "path": "settings"
       }
     ],
     "links": {
@@ -23,16 +19,9 @@
         {
           "id": "ibkr-import",
           "route": "import",
-          "label": "IBKR Import",
+          "label": "IBKR",
           "icon": "files",
           "order": 150
-        },
-        {
-          "id": "ibkr-settings",
-          "route": "settings",
-          "label": "IBKR Settings",
-          "icon": "sliders",
-          "order": 151
         }
       ]
     }

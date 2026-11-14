@@ -1,9 +1,7 @@
 import type { AddonContext } from "@wealthfolio/addon-sdk";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Page, PageContent, PageHeader } from "@wealthfolio/ui";
-import { ImportWizard } from "./components/import-wizard";
-import IBKRFlexSettingsPage from "./pages/ibkr-flex-settings-page";
+import { IBKRPage } from "./pages/ibkr-page";
 import { setHttpClient, createNetworkHttpClient } from "./lib/flex-query-fetcher";
 import { loadConfigsSafe, loadToken, updateConfigStatus } from "./lib/flex-config-storage";
 import { getOrCreateAccountsForGroup } from "./lib/ibkr-accounts";
@@ -18,7 +16,6 @@ import { getErrorMessage } from "./lib/shared-utils";
 
 const ADDON_ID = "ibkr-multi-import";
 const ROUTE_IMPORT = "import";
-const ROUTE_SETTINGS = "settings";
 
 /**
  * Create a debounced version of a function with cleanup support
@@ -89,23 +86,8 @@ export function enable(ctx: AddonContext) {
     id: ROUTE_IMPORT,
     path: `/addons/${ADDON_ID}`,
     component: () => (
-      <Page>
-        <PageHeader heading="IBKR Multi-Currency Import" />
-        <PageContent withPadding={false}>
-          <div className="px-2 pt-2 pb-6 sm:px-4 sm:pt-4 md:px-6 md:pt-6">
-            <ImportWizard ctx={ctx} onClose={() => {}} />
-          </div>
-        </PageContent>
-      </Page>
-    ),
-  });
-
-  ctx.router.add({
-    id: ROUTE_SETTINGS,
-    path: `/addons/${ADDON_ID}/settings`,
-    component: () => (
       <QueryClientProvider client={queryClient}>
-        <IBKRFlexSettingsPage ctx={ctx} />
+        <IBKRPage ctx={ctx} />
       </QueryClientProvider>
     ),
   });

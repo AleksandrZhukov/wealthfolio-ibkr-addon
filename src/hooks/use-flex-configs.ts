@@ -22,8 +22,8 @@ interface SecretsAPI {
   delete(key: string): Promise<void>;
 }
 
-// Query keys
-const QUERY_KEYS = {
+/** React Query keys for the configs and the token. */
+export const QUERY_KEYS = {
   configs: ["flex-configs"] as const,
   token: ["flex-token"] as const,
 };
