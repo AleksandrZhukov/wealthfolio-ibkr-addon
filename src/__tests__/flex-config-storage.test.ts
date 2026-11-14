@@ -9,6 +9,7 @@ import {
   saveToken,
   deleteToken,
   updateConfigStatus,
+  connectionUpdates,
   SECRET_FLEX_TOKEN,
   SECRET_FLEX_CONFIGS,
   type FlexQueryConfig,
@@ -480,5 +481,29 @@ describe("Flex Config Storage", () => {
       expect(finalConfigs[0].lastFetchStatus).toBe("error");
       expect(finalConfigs[0].lastFetchError).toBe("New error");
     });
+  });
+});
+
+describe("connectionUpdates", () => {
+  const form = {
+    name: "Main",
+    queryId: "123456",
+    accountGroup: "IBKR",
+    autoFetchEnabled: true,
+    historyFrom: "",
+  };
+  it("stores an empty history date as undefined", () =>
+    expect(connectionUpdates(undefined, form).historyFrom).toBeUndefined());
+  it("keeps syncedThrough when historyFrom is unchanged", () => {
+    const existing = { id: "1", ...form, historyFrom: undefined, syncedThrough: "2026-11-13" };
+    expect("syncedThrough" in connectionUpdates(existing, { ...form, name: "Renamed" })).toBe(
+      false,
+    );
+  });
+  it("resets syncedThrough when historyFrom changes", () => {
+    const existing = { id: "1", ...form, historyFrom: undefined, syncedThrough: "2026-11-13" };
+    const updates = connectionUpdates(existing, { ...form, historyFrom: "2019-01-01" });
+    expect(updates).toHaveProperty("syncedThrough", undefined);
+    expect(updates.historyFrom).toBe("2019-01-01");
   });
 });

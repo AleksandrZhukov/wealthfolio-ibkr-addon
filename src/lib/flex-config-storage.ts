@@ -38,6 +38,38 @@ export interface FlexQueryConfig {
   lastFetchTime?: string;
   lastFetchStatus?: "success" | "error";
   lastFetchError?: string;
+  /** First-sync start date (`YYYY-MM-DD`); unset means the query's own Period. */
+  historyFrom?: string;
+  /** Last day (`YYYY-MM-DD`) included in a sync with zero rejected rows. */
+  syncedThrough?: string;
+}
+
+/** Values from the connection form; `historyFrom: ""` means no date. */
+export interface ConnectionFormData {
+  name: string;
+  queryId: string;
+  accountGroup: string;
+  autoFetchEnabled: boolean;
+  historyFrom: string;
+}
+
+/**
+ * Config fields to save from the connection form. A changed `historyFrom`
+ * includes the key `syncedThrough: undefined`, so the next sync starts over
+ * from the new date (`JSON.stringify` drops the key in storage).
+ */
+export function connectionUpdates(
+  existing: FlexQueryConfig | undefined,
+  form: ConnectionFormData,
+): Omit<FlexQueryConfig, "id" | "lastFetchTime" | "lastFetchStatus" | "lastFetchError"> {
+  const updates: Omit<
+    FlexQueryConfig,
+    "id" | "lastFetchTime" | "lastFetchStatus" | "lastFetchError"
+  > = { ...form, historyFrom: form.historyFrom || undefined };
+  if (existing && (existing.historyFrom ?? "") !== form.historyFrom) {
+    updates.syncedThrough = undefined;
+  }
+  return updates;
 }
 
 /**
@@ -199,6 +231,7 @@ export async function updateConfigStatus(
     lastFetchTime?: string;
     lastFetchStatus?: "success" | "error";
     lastFetchError?: string;
+    syncedThrough?: string;
   },
 ): Promise<void> {
   await withLock(configLock, async () => {
