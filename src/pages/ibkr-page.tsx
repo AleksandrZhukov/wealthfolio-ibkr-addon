@@ -27,9 +27,10 @@ import { toast } from "sonner";
 import type { AddonContext, Account } from "@wealthfolio/addon-sdk";
 import { FlexConfigItem } from "../components/flex-config-item";
 import { FlexConfigModal } from "../components/flex-config-modal";
-import { ImportWizard } from "../components/import-wizard";
+import { ImportWizard, type WizardOutcome } from "../components/import-wizard";
 import {
   connectionUpdates,
+  updateConfigStatus,
   type ConnectionFormData,
   type FlexQueryConfig,
 } from "../lib/flex-config-storage";
@@ -42,12 +43,26 @@ import {
   useDeleteConfig,
   useSaveToken,
 } from "../hooks/use-flex-configs";
-import { syncNow } from "../lib/auto-fetch-processor";
-import { formatImportResultMessage } from "../lib/auto-fetch-helpers";
+import { fetchAndParseFlexQuery, syncLock, syncNow } from "../lib/auto-fetch-processor";
+import {
+  createErrorStatus,
+  createSuccessStatus,
+  enrichIBKRErrorMessage,
+  formatImportResultMessage,
+} from "../lib/auto-fetch-helpers";
+import { getSyncRange, type SyncRange } from "../lib/sync-range";
+import type { CsvRowData } from "../presets/types";
 import { getOrCreateAccountsForGroup } from "../lib/ibkr-accounts";
 import { getErrorMessage } from "../lib/shared-utils";
 
 type SyncState = { running: boolean; message?: string };
+
+/** A connection's first sync, waiting for the user to finish the wizard. */
+type FirstSync = {
+  config: FlexQueryConfig;
+  range: SyncRange;
+  initial: { groupName: string; rows: CsvRowData[] };
+};
 
 /** One page for the Flex token, the connections, and the CSV wizard. */
 export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
@@ -56,6 +71,7 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
 
   const [view, setView] = useState<"connections" | "wizard">("connections");
   const [syncState, setSyncState] = useState<Record<string, SyncState>>({});
+  const [firstSync, setFirstSync] = useState<FirstSync | null>(null);
 
   // Token state
   const [tokenInput, setTokenInput] = useState("");
@@ -148,9 +164,64 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
   const setConfigSync = (id: string, state: SyncState) =>
     setSyncState((prev) => ({ ...prev, [id]: state }));
 
+  const markSynced = (config: FlexQueryConfig, range: SyncRange) =>
+    updateConfigStatus(secrets, config.id, { ...createSuccessStatus(), syncedThrough: range.to });
+
+  /**
+   * First sync: fetch, then preview in the wizard. The lock covers only the
+   * fetch; auto-fetch skips this connection until it has `syncedThrough`.
+   */
+  const startFirstSync = async (config: FlexQueryConfig, token: string) => {
+    const release = syncLock.tryAcquire();
+    if (!release) {
+      toast.info("A sync is already running");
+      return;
+    }
+    setConfigSync(config.id, { running: true });
+    const range = getSyncRange(config, new Date());
+    let result: Awaited<ReturnType<typeof fetchAndParseFlexQuery>>;
+    try {
+      result = await fetchAndParseFlexQuery(
+        token,
+        config.queryId,
+        config.name,
+        ctx.api.logger,
+        range,
+        (message) => setConfigSync(config.id, { running: true, message }),
+      );
+    } catch (error) {
+      result = { success: false, error: getErrorMessage(error) };
+    } finally {
+      release();
+    }
+
+    if (!result.success) {
+      const status = createErrorStatus(result.error);
+      const message = enrichIBKRErrorMessage(status.lastFetchError || "Unknown error");
+      await updateConfigStatus(secrets, config.id, { ...status, lastFetchError: message });
+      setConfigSync(config.id, { running: false, message });
+    } else if (result.rows.length === 0) {
+      await markSynced(config, range);
+      setConfigSync(config.id, { running: false, message: "No transactions in this period" });
+    } else {
+      setConfigSync(config.id, { running: false });
+      setFirstSync({
+        config,
+        range,
+        initial: { groupName: config.accountGroup, rows: result.rows },
+      });
+      setView("wizard");
+    }
+    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.configs });
+  };
+
   const handleSync = async (config: FlexQueryConfig) => {
     if (!savedToken) {
       toast.error("Save your Flex token first");
+      return;
+    }
+    if (!config.syncedThrough) {
+      await startFirstSync(config, savedToken);
       return;
     }
     setConfigSync(config.id, { running: true });
@@ -174,9 +245,19 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
     await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.configs });
   };
 
-  const closeWizard = () => {
+  const closeWizard = async (outcome: WizardOutcome | null) => {
+    // A cancelled or partly rejected first sync stays unsynced, so the next
+    // Sync now fetches the same window again.
+    if (firstSync && outcome && outcome.failed === 0) {
+      try {
+        await markSynced(firstSync.config, firstSync.range);
+      } catch (error) {
+        toast.error(`Failed to save sync date: ${getErrorMessage(error)}`);
+      }
+    }
+    setFirstSync(null);
     setView("connections");
-    void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.configs });
+    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.configs });
   };
 
   const isSubmitting = addConfigMutation.isPending || updateConfigMutation.isPending;
@@ -205,10 +286,14 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
       <PageContent>
         {view === "wizard" ? (
           <div className="space-y-4">
-            <Button variant="ghost" onClick={closeWizard}>
+            <Button variant="ghost" onClick={() => void closeWizard(null)}>
               ← Connections
             </Button>
-            <ImportWizard ctx={ctx} onClose={closeWizard} />
+            <ImportWizard
+              ctx={ctx}
+              initial={firstSync?.initial}
+              onClose={(outcome) => void closeWizard(outcome)}
+            />
           </div>
         ) : (
           <div className="space-y-6">
