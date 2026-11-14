@@ -324,15 +324,20 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
                           value={tokenInput}
                           onChange={(e) => handleTokenChange(e.target.value)}
                           placeholder="Enter your Flex Web Service token"
-                          className="pr-10"
+                          className="pe-10"
                         />
-                        <button
+                        {/* The addon ships no CSS, so only classes the host compiles work here.
+                            These match the host's PasswordInput (packages/ui), which the host scans. */}
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={showToken ? "Hide token" : "Show token"}
                           onClick={() => setShowToken(!showToken)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground absolute end-1 top-1/2 size-8 -translate-y-1/2"
                         >
-                          {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
+                          {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </Button>
                       </div>
                       <Button
                         onClick={handleSaveToken}
