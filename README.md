@@ -33,15 +33,27 @@ runtime and does not load on Wealthfolio 3.6+.
 
 ## Usage
 
+Requires Wealthfolio 3.13 or later.
+
+### Connections (Flex Query)
+
+1. Open **IBKR** from the sidebar
+2. Save your Flex token in the **Flex Token** card
+3. Click **Add connection**: name, Query ID, account group, and optionally **Import history from**
+4. Click **Sync now**. The first sync fetches the full history (from **Import history from**, or the query's Period) and opens the import wizard for review
+5. Later syncs fetch from the last synced day minus 7 days up to yesterday and import directly. The result shows inline, e.g. "12 transactions imported, 340 duplicates skipped"
+6. With auto-fetch on, a connection syncs after portfolio updates (at most once per 6 hours), once it has had its first sync
+
+Each activity carries its IBKR TransactionID, so Wealthfolio never imports the same transaction twice.
+
 ### CSV Import
 
-1. Navigate to **Activities > IBKR Multi-Import** from the sidebar
-2. Select "Import from CSV Files"
-3. Enter an account group name (e.g., "TFSA", "Trading")
-4. Upload one or more IBKR activity statement CSV files
-5. Review detected currencies and adjust account names if needed
-6. Review the transaction preview with resolved tickers
-7. Click "Start Import" to create accounts and import transactions
+1. Open **IBKR** from the sidebar and click **Import CSV**
+2. Enter an account group name (e.g., "TFSA", "Trading")
+3. Upload one or more IBKR activity statement CSV files
+4. Review detected currencies and adjust account names if needed
+5. Review the transaction preview with resolved tickers
+6. Click "Start Import" to create accounts and import transactions
 
 ### Flex Query Setup
 
@@ -154,21 +166,19 @@ Splits are read from the description ("SPLIT 10 FOR 1") and imported as `SPLIT` 
 
 #### Step 6: Configure in Wealthfolio
 
-1. Open Wealthfolio → **Activities > IBKR Settings**
-2. Click **Add Configuration**
-3. Enter your **Query ID** (shown at the top of your Flex Query)
-4. Enter your **Flex Web Service Token**
+1. Open Wealthfolio → **IBKR**
+2. Save your **Flex Web Service Token** in the **Flex Token** card
+3. Click **Add connection**
+4. Enter your **Query ID** (shown at the top of your Flex Query)
 5. Give it a name (e.g., "Main Account")
-6. Enable **Auto-fetch on portfolio update** for automatic syncing
+6. Enable **auto-fetch** for automatic syncing, then click **Sync now** for the first sync
 
 ## Import Workflow
 
-### Step 1: Source Selection
-Choose between CSV file import or Flex Query API fetch.
+The wizard opens from **Import CSV**, and for the first sync of a connection (starting at Step 3).
 
-### Step 2: Group & Files (CSV) / Configuration (Flex Query)
-- **CSV**: Enter group name and upload files
-- **Flex Query**: Select saved configuration or enter credentials
+### Steps 1-2: Group & Files
+- Enter group name and upload CSV files
 
 ### Step 3: Currency Accounts
 - Review detected currencies

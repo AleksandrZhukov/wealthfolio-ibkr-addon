@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-14
+
+### Added
+- One IBKR page with Flex Query connections; each connection has a `Sync now` button
+- Syncs fetch from the last synced day minus 7 days up to yesterday, not the whole query Period
+- The first sync of a connection opens the import wizard for review
+- Activities carry the IBKR TransactionID as `sourceRecordId`, and Wealthfolio's import check finds duplicates
+
+### Changed
+- Requires Wealthfolio 3.13
+- The `IBKR Settings` sidebar item is removed; the sidebar item is now `IBKR`
+- The CSV wizard no longer has a Flex Query source
+
 ## [1.5.1] - 2026-10-22
 
 ### Fixed
