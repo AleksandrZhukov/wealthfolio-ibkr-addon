@@ -369,7 +369,7 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
                   <Skeleton className="h-20 w-full" />
                 </div>
               ) : configs && configs.length > 0 ? (
-                <div className="divide-y rounded-md border">
+                <Card className="divide-y overflow-hidden">
                   {configs.map((config) => (
                     <FlexConfigItem
                       key={config.id}
@@ -380,7 +380,7 @@ export const IBKRPage: React.FC<{ ctx: AddonContext }> = ({ ctx }) => {
                       syncState={syncState[config.id]}
                     />
                   ))}
-                </div>
+                </Card>
               ) : (
                 <EmptyPlaceholder>
                   <EmptyPlaceholder.Icon name="Settings" />

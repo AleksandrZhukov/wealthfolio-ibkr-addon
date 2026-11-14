@@ -36,7 +36,7 @@ export const FlexConfigItem: React.FC<FlexConfigItemProps> = ({
 }) => {
   const running = syncState?.running ?? false;
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-muted/50">
+    <div className="flex items-center justify-between px-6 py-4 hover:bg-muted/50">
       <div className="space-y-1">
         {/* Name and badges */}
         <div className="flex items-center gap-2">
