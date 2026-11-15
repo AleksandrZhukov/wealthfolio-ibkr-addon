@@ -1,7 +1,7 @@
 {
   "id": "ibkr-multi-import",
   "name": "IBKR Multi-Currency Import",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Import IBKR transactions via CSV files or Flex Query API with automatic multi-currency account creation",
   "author": "Nikolai Trukhin",
   "main": "dist/addon.js",
@@ -20,7 +20,7 @@
           "id": "ibkr-import",
           "route": "import",
           "label": "IBKR",
-          "icon": "chart-line-up",
+          "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='12 12 170 170'%3E%3Cpath d='M127 12 52 102v80h76L80 124z'/%3E%3Ccircle cx='121' cy='118' r='22'/%3E%3C/svg%3E",
           "order": 150
         }
       ]
