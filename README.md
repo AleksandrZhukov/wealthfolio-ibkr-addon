@@ -10,11 +10,12 @@ A comprehensive import solution for Interactive Brokers (IBKR) activity statemen
 - **ISIN-Based Ticker Resolution**: Resolves IBKR symbols to Yahoo Finance compatible tickers
 - **FX Conversion Splitting**: Splits foreign exchange transactions into withdrawal/deposit pairs
 - **Transaction Types**: Handles trades, dividends, fees, deposits, withdrawals, and transfers
-- **Smart Deduplication**: Prevents duplicate imports when using both CSV and Flex Query
+- **Deduplication**: Every activity carries its IBKR TransactionID, so Wealthfolio skips transactions it already has, from CSV or Flex Query
+- **Incremental Sync**: After the first sync, a connection fetches only the days since its last sync
 
 ## Installation
 
-Requires Wealthfolio 3.9 or newer. Version 1.0.0 targets the pre-sandbox addon
+Requires Wealthfolio 3.13 or newer. Version 1.0.0 targets the pre-sandbox addon
 runtime and does not load on Wealthfolio 3.6+.
 
 ### From GitHub Releases
@@ -32,8 +33,6 @@ runtime and does not load on Wealthfolio 3.6+.
 3. Click Install
 
 ## Usage
-
-Requires Wealthfolio 3.13 or later.
 
 ### Connections (Flex Query)
 
@@ -204,6 +203,7 @@ The wizard opens from **Import CSV**, and for the first sync of a connection (st
 - Cash deposits and withdrawals
 - Internal transfers
 - Foreign exchange conversions
+- Stock splits
 
 ### CSV Format
 The addon supports standard IBKR activity statement CSV exports containing:
@@ -228,7 +228,7 @@ This addon requires the following permissions:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24
 - pnpm
 
 ### Setup
@@ -257,8 +257,10 @@ pnpm test
 # Run tests in watch mode
 pnpm test:watch
 
-# Type checking
+# Type checking, lint and format
 pnpm type-check
+pnpm lint
+pnpm format:check
 ```
 
 ### Building for Distribution
