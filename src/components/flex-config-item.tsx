@@ -74,7 +74,9 @@ export const FlexConfigItem: React.FC<FlexConfigItemProps> = ({
         {config.lastFetchTime && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            <span>Last fetch: {formatRelativeTime(config.lastFetchTime)}</span>
+            <span title={new Date(config.lastFetchTime).toLocaleString()}>
+              Last fetch: {formatRelativeTime(config.lastFetchTime)}
+            </span>
             {config.lastFetchStatus === "success" && (
               <CheckCircle2 className="h-3 w-3 text-green-500" />
             )}
